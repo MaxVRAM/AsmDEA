@@ -36,10 +36,10 @@ def flatten_directory(details, src_dir, dest_dir) -> int:
                 print(f"Found asmdef: {asmdef_path}")
                 break
 
-        detail_comment = f"// Asmdef: {asmdef_path}\n// Path: {relative_folder}\n\n"
-
         for file in files:
             if file.endswith(".cs"):
+                relative_file = os.path.join(relative_folder, file)
+                detail_comment = f"// Asmdef: {asmdef_path}\n// Script: {relative_file}\n\n"
                 src_file_path = os.path.join(root, file)
                 dest_file_path = os.path.join(dest_dir, file)
                 shutil.copy2(src_file_path, dest_file_path)

@@ -33,7 +33,10 @@ def flatten_directory(details, src_dir, dest_dir) -> int:
             if details and file.endswith(".asmdef"):
                 # Path to the asmdef file relative to the source directory (not including the source directory itself)
                 asmdef_path = os.path.join(relative_folder, file)
-                print(f"Found asmdef: {asmdef_path}")
+                # Copy asmdef file as well
+                asmdef_dest_path = os.path.join(dest_dir, file)
+                shutil.copy2(os.path.join(root, file), asmdef_dest_path)
+                print(f"Copied asmdef: {os.path.join(root, file)} to {asmdef_dest_path}")
                 break
 
         for file in files:

@@ -1,17 +1,61 @@
 # Script Flattener
 
-A utility to flatten directory structures by copying all C# (.cs) files from a source directory to a destination directory, removing the nested folder hierarchy.
+A collection of utilities for analyzing Unity assembly definitions (.asmdef) and flattening directory structures.
 
-## Purpose
+## Tools
 
-This tool is useful when you need to collect all C# source files from a complex project structure into a single flat directory. This can be helpful for:
-- Code analysis tools that work better with flat structures
-- Creating simplified project views
-- Preparing code for processing by external tools
+### 1. Assembly Definition Analysis (`asmdef_analyse.py`)
 
-## Usage
+Comprehensive tool for analyzing Unity assembly definitions, detecting cyclic dependencies, and optionally analyzing C# file distribution across assemblies.
 
-### Basic Usage
+#### Features
+
+- Builds a dictionary of all assembly definitions with their metadata
+- Detects and reports cyclic dependencies between assemblies
+- Optionally analyzes which .cs files belong to each assembly
+- Respects nested assembly boundaries (scripts belong to nearest parent asmdef)
+- Generates detailed reports with GUID information
+
+#### Usage
+
+```bash
+# Basic analysis
+python asmdef_analyse.py path/to/unity/project
+
+# With .env configuration
+python asmdef_analyse.py
+
+# Analyze with file listing
+python asmdef_analyse.py path/to/unity/project --analyze-files --file-report
+
+# Full detailed analysis with output file
+python asmdef_analyse.py path/to/unity/project --detailed --analyze-files --file-report --output ./output/report.txt
+```
+
+#### Environment Configuration
+
+Create a `.env` file (see `.env.example`):
+
+```env
+ROOT_PATH=D:/Development/MyUnityProject
+DETAILED=true
+DEPTH=3
+OUTPUT_PATH=./output/cycle_report.txt
+DICT_FILE=./.work/asmdef_dictionary.json
+ANALYZE_FILES=true
+```
+
+### 2. Assembly File Analyzer (`asmdef_file_analyzer.py`)
+
+Analyzes which .cs files belong to each assembly definition, respecting nested assembly boundaries.
+
+#### Usage
+
+```bash
+python asmdef_file_analyzer.py --file asmdef_dictionary.json --root path/to/unity/project --report
+```
+
+### 3. Script Flattener (`script_flattener.py`)
 
 ```bash
 python script_flattener.py

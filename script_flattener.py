@@ -47,10 +47,25 @@ def flatten_directory(details, src_dir, dest_dir) -> int:
                 dest_file_path = os.path.join(dest_dir, file)
                 shutil.copy2(src_file_path, dest_file_path)
                 if details:
-                    with open(dest_file_path, "r+") as dest_file:
-                        content = dest_file.read()
-                        dest_file.seek(0, 0)
-                        dest_file.write(detail_comment + content)
+                    try:
+                        # Try UTF-8 encoding first
+                        with open(dest_file_path, "r+", encoding="utf-8") as dest_file:
+                            content = dest_file.read()
+                            dest_file.seek(0, 0)
+                            dest_file.write(detail_comment + content)
+                    except UnicodeDecodeError:
+                        try:
+                            # If UTF-8 fails, try UTF-16
+                            with open(dest_file_path, "r+", encoding="utf-16") as dest_file:
+                                content = dest_file.read()
+                                dest_file.seek(0, 0)
+                                dest_file.write(detail_comment + content)
+                        except UnicodeDecodeError:
+                            # If all else fails, use binary mode to avoid encoding issues
+                            with open(dest_file_path, "rb") as source:
+                                content = source.read()
+                            with open(dest_file_path, "wb") as dest:
+                                dest.write(detail_comment.encode("utf-8") + content)
                 print(f"Copied: {src_file_path} to {dest_file_path}")
                 count += 1
 

@@ -1,0 +1,23 @@
+# Visual Studio Code settings
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Contents
+source/
+flattened/
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.meta
+
+.env
+output/
+.work/

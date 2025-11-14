@@ -126,57 +126,130 @@ def generate_cycle_focused_tree(graph, root, cycle_nodes, max_depth=3, visited=N
     return lines
 
 
+def build_nested_dependency_structure(graph, start_node, cycle_nodes, visited=None, max_depth=10):
+    """
+    Build a nested dependency structure for JSON visualisation.
+    Returns a nested dictionary showing the dependency tree.
+    """
+    if visited is None:
+        visited = set()
+
+    if max_depth <= 0:
+        return {"name": start_node, "truncated": True}
+
+    if start_node in visited:
+        return {"name": start_node, "circular_reference": True}
+
+    visited.add(start_node)
+
+    node_info = {"name": start_node, "in_cycle": start_node in cycle_nodes}
+
+    dependencies = graph.get(start_node, [])
+    if dependencies:
+        node_info["dependencies"] = []
+        for dep in dependencies:
+            if dep in graph:  # Only include dependencies that exist in our graph
+                dep_structure = build_nested_dependency_structure(
+                    graph, dep, cycle_nodes, visited.copy(), max_depth - 1
+                )
+                node_info["dependencies"].append(dep_structure)
+
+    return node_info
+
+
 def create_cycle_report(cycles, graph, name_to_guid, detailed=False, max_depth=3):
-    """Create a focused report of the dependency cycles."""
+    """
+    Create a JSON-formatted report of the dependency cycles with nested structures.
+
+    Output structure:
+    - summary: Overview of cycles found
+    - cycles: List of cycle details including:
+      - cycle_number: Sequential identifier
+      - path: List of assembly names in cycle
+      - path_display: Human-readable cycle path
+      - assemblies: Dict of assembly names to their GUIDs and metadata
+      - dependency_chain: Nested structure showing the circular dependency
+    - assemblies_in_multiple_cycles: (optional) List of assemblies appearing in >1 cycle
+    - metadata: Analysis statistics
+    """
     if not cycles:
-        return "No cyclic dependencies found."
+        report_data = {"summary": {"cyclic_dependencies_found": 0, "message": "No cyclic dependencies found."}}
+        return report_data
 
     # Get all nodes involved in any cycle
     all_cycle_nodes = set()
     for cycle in cycles:
         all_cycle_nodes.update(cycle)
 
-    report = [f"Found {len(cycles)} cyclic dependencies:"]
+    # Build the report as a dictionary structure
+    report_data = {
+        "summary": {"cyclic_dependencies_found": len(cycles), "total_assemblies_in_cycles": len(all_cycle_nodes)},
+        "cycles": [],
+    }
 
     for i, cycle in enumerate(cycles, 1):
-        report.append(f"\nCYCLE {i}: {format_cycle_path(cycle)}")
+        cycle_info = {"cycle_number": i, "path": cycle, "path_display": format_cycle_path(cycle), "assemblies": {}}
 
-        # Show GUIDs for assemblies in this cycle
-        report.append("\nAssembly GUIDs in this cycle:")
+        # Add GUIDs and metadata for assemblies in this cycle
         for node in cycle[:-1]:  # Exclude the duplicate last node
             guid = name_to_guid.get(node, "GUID not found")
-            report.append(f"  {node}: {guid}")
+            cycle_info["assemblies"][node] = {
+                "guid": guid,
+                "direct_dependencies_in_cycle": [d for d in graph.get(node, []) if d in cycle],
+            }
 
-        # Show direct dependencies between cycle nodes
-        report.append("\nDirect dependencies within this cycle:")
-        for node in cycle:
-            cycle_deps = [d for d in graph.get(node, []) if d in cycle]
-            if cycle_deps:
-                report.append(f"  {node} → {', '.join(cycle_deps)}")
+        # Build nested dependency chain starting from the first node in the cycle
+        if detailed and cycle:
+            cycle_set = set(cycle)
+            cycle_info["dependency_chain"] = build_nested_dependency_structure(
+                graph, cycle[0], cycle_set, max_depth=max_depth
+            )
 
-        if detailed:
-            # Show a focused tree for the first node in cycle
-            report.append("\nFocused dependency tree:")
-            tree = generate_cycle_focused_tree(graph, cycle[0], all_cycle_nodes, max_depth)
-            report.extend(tree)
+        report_data["cycles"].append(cycle_info)
 
-        report.append("\n" + "-" * 40)
-
-    # Add summary information
+    # Add assemblies involved in multiple cycles
     nodes_in_multiple_cycles = [n for n in all_cycle_nodes if sum(n in c for c in cycles) > 1]
     if nodes_in_multiple_cycles:
-        report.append("\nAssemblies involved in multiple cycles:")
-        report.append("  " + ", ".join(sorted(nodes_in_multiple_cycles)))
+        report_data["assemblies_in_multiple_cycles"] = sorted(nodes_in_multiple_cycles)
 
-    return "\n".join(report)
+    return report_data
+
+
+def create_summary_report(report_data):
+    """
+    Create a simplified version of the cycle report without dependency chains.
+
+    This removes the 'dependency_chain' field from each cycle while keeping
+    all other information (summary, cycles metadata, assemblies).
+    """
+    summary_report = {"summary": report_data["summary"], "cycles": []}
+
+    for cycle in report_data.get("cycles", []):
+        summary_cycle = {
+            "cycle_number": cycle["cycle_number"],
+            "path": cycle["path"],
+            "path_display": cycle["path_display"],
+            "assemblies": cycle["assemblies"],
+        }
+        summary_report["cycles"].append(summary_cycle)
+
+    # Include assemblies_in_multiple_cycles if present
+    if "assemblies_in_multiple_cycles" in report_data:
+        summary_report["assemblies_in_multiple_cycles"] = report_data["assemblies_in_multiple_cycles"]
+
+    # Include metadata
+    if "metadata" in report_data:
+        summary_report["metadata"] = report_data["metadata"]
+
+    return summary_report
 
 
 def main():
     parser = argparse.ArgumentParser(description="Detect cyclic dependencies in assembly definitions")
     parser.add_argument("--file", default="asmdef_dictionary.json", help="Path to the asmdef dictionary JSON file")
-    parser.add_argument("--detailed", action="store_true", help="Show detailed dependency trees for cycles")
-    parser.add_argument("--depth", type=int, default=3, help="Maximum depth for dependency trees (default: 3)")
-    parser.add_argument("--output", "-o", help="Write report to this file")
+    parser.add_argument("--detailed", action="store_true", help="Show nested dependency chains for cycles")
+    parser.add_argument("--depth", type=int, default=3, help="Maximum depth for dependency chains (default: 3)")
+    parser.add_argument("--output", "-o", help="Write report to this file (JSON format)")
     args = parser.parse_args()
 
     # Load asmdef dictionary
@@ -189,21 +262,33 @@ def main():
     cycles = detect_cycles(graph)
 
     # Generate the report
-    report = create_cycle_report(cycles, graph, name_to_guid, args.detailed, args.depth)
+    report_data = create_cycle_report(cycles, graph, name_to_guid, args.detailed, args.depth)
 
-    # Output the report
+    # Add metadata
+    report_data["metadata"] = {"total_assemblies_analysed": len(graph)}
+
+    # Determine output paths
     if args.output:
-        # Create output directory if it doesn't exist
         output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(args.output, "w", encoding="utf-8") as f:
-            f.write(report)
-            f.write(f"\n\nAnalysed {len(graph)} assemblies.")
-        print(f"Report written to {args.output}")
     else:
-        print(report)
-        print(f"\nAnalysed {len(graph)} assemblies.")
+        output_path = Path("./output/cycle_report.json")
+
+    # Create summary output path based on main output
+    summary_output_path = output_path.parent / f"{output_path.stem}_summary{output_path.suffix}"
+
+    # Create output directory if it doesn't exist
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write main report
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(report_data, f, indent=2, ensure_ascii=False)
+    print(f"JSON report written to {output_path}")
+
+    # Always generate summary report
+    summary_report = create_summary_report(report_data)
+    with open(summary_output_path, "w", encoding="utf-8") as f:
+        json.dump(summary_report, f, indent=2, ensure_ascii=False)
+    print(f"Summary report written to {summary_output_path}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Analyze .cs files contained in each assembly definition.
+Analyse .cs files contained in each assembly definition.
 Respects nested asmdef boundaries - scripts belong to the nearest parent asmdef.
 """
 
@@ -64,10 +64,10 @@ def find_owning_assembly(file_path, path_to_guid):
 def should_ignore_path(path):
     """
     Check if a path should be ignored (Unity ignores folders ending with ~).
-    Returns True if any part of the path ends with ~.
+    Returns True if any part of the path contains `~`.
     """
     for part in path.parts:
-        if part.endswith("~"):
+        if "~" in part:
             return True
     return False
 
@@ -144,7 +144,7 @@ def add_files_to_dictionary(asmdef_dict, assembly_files, unassigned_files):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze .cs files contained in each assembly definition")
+    parser = argparse.ArgumentParser(description="Analyse .cs files contained in each assembly definition")
     parser.add_argument("--file", default="asmdef_dictionary.json", help="Path to the asmdef dictionary JSON file")
     parser.add_argument("--root", required=True, help="Root path that was used to generate the dictionary")
     parser.add_argument(
@@ -156,7 +156,7 @@ def main():
     # Load the asmdef dictionary
     asmdef_dict = load_asmdef_dictionary(args.file)
 
-    # Analyze the files
+    # Analyse the files
     assembly_files, unassigned_files = analyze_assembly_files(asmdef_dict, args.root)
 
     if assembly_files is None:

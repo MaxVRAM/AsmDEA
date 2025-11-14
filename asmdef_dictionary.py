@@ -80,7 +80,7 @@ def build_asmdef_dictionary(root_path):
 
         # Add to dictionary
         asmdef_dict[guid] = asmdef_data
-        print(f"Added: {asmdef_data.get('name', 'Unknown')} (GUID: {guid})")
+        # print(f"Added: {asmdef_data.get('name', 'Unknown')} (GUID: {guid})")
 
     return asmdef_dict
 

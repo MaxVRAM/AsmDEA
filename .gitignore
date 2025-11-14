@@ -19,5 +19,4 @@ Thumbs.db
 *.meta
 
 .env
-output/
-.work/
+reports/

@@ -52,6 +52,9 @@ def load_env_defaults():
     if os.getenv("ANALYZE_FILES"):
         defaults["analyze_files"] = os.getenv("ANALYZE_FILES").lower() in ("true", "1", "yes")
 
+    if os.getenv("ALLOW_CHILD_NAMESPACES"):
+        defaults["allow_child_namespaces"] = os.getenv("ALLOW_CHILD_NAMESPACES").lower() in ("true", "1", "yes")
+
     return defaults
 
 
@@ -63,7 +66,7 @@ def main():
         description="Analyse assembly definitions for cyclic dependencies",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Configuration can be provided via .env file with variables:\n"
-        "  ROOT_PATH, DETAILED, DEPTH, OUTPUT_PATH, DICT_FILE, ANALYZE_FILES",
+        "  ROOT_PATH, DETAILED, DEPTH, OUTPUT_PATH, DICT_FILE, ANALYZE_FILES, ALLOW_CHILD_NAMESPACES",
     )
     parser.add_argument(
         "root_path",
@@ -99,6 +102,15 @@ def main():
         "--file-report",
         action="store_true",
         help="Print a summary report of files per assembly (requires --analyze-files)",
+    )
+    parser.add_argument(
+        "--allow-child-namespaces",
+        action="store_true",
+        default=env_defaults.get("allow_child_namespaces", True),
+        help="Allow child namespaces that extend the root namespace (default: True)",
+    )
+    parser.add_argument(
+        "--strict", action="store_true", help="Disable child namespace allowance for namespace analysis"
     )
     args = parser.parse_args()
 
@@ -180,8 +192,41 @@ def main():
             print(f"\nError: Failed to analyze files (exit code {e.returncode})", file=sys.stderr)
             sys.exit(1)
 
+        # NEW: Analyze namespaces
+        print("\n" + "=" * 60)
+        print("STEP 3: Analyzing namespaces in C# files")
+        print("=" * 60)
+
+        namespace_analyzer_script = script_dir / "asmdef_namespace_analyzer.py"
+        if not namespace_analyzer_script.exists():
+            print(f"Error: Script not found: {namespace_analyzer_script}", file=sys.stderr)
+            sys.exit(1)
+
+        namespace_cmd = [
+            sys.executable,
+            str(namespace_analyzer_script),
+            "--file",
+            args.dict_file,
+            "--root",
+            args.root_path,
+            "--report",  # Always show report for namespace analysis
+        ]
+
+        # Add child namespace option
+        if args.strict:
+            namespace_cmd.append("--strict")
+        elif not args.allow_child_namespaces:
+            # Explicitly disable if not using default
+            namespace_cmd.append("--strict")
+
+        try:
+            subprocess.run(namespace_cmd, check=True, capture_output=False, text=True)
+        except subprocess.CalledProcessError as e:
+            print(f"\nError: Failed to analyze namespaces (exit code {e.returncode})", file=sys.stderr)
+            sys.exit(1)
+
     print("\n" + "=" * 60)
-    step_num = 3 if args.analyze_files else 2
+    step_num = 4 if args.analyze_files else 2
     print(f"STEP {step_num}: Analysing cyclic dependencies")
     print("=" * 60)
 
@@ -196,6 +241,9 @@ def main():
 
     if args.output:
         cyclic_cmd.extend(["--output", args.output])
+    else:
+        # Use default output path
+        cyclic_cmd.extend(["--output", "./output/cycle_report.json"])
 
     # Run asmdef_cyclic_report.py
     try:

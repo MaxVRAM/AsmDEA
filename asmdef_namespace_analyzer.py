@@ -404,7 +404,7 @@ def main():
 
     if problems_report:
         # Determine problems report output path
-        problems_output_path = output_path.parent / f"{output_path.stem}_namespace_problems{output_path.suffix}"
+        problems_output_path = output_path.parent / f"{output_path.stem}_problems{output_path.suffix}"
 
         try:
             with open(problems_output_path, "w", encoding="utf-8") as f:

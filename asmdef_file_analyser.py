@@ -72,9 +72,9 @@ def should_ignore_path(path):
     return False
 
 
-def analyze_assembly_files(asmdef_dict, root_path):
+def analyse_assembly_files(asmdef_dict, root_path):
     """
-    Analyze all .cs files and assign them to their owning assemblies.
+    Analyse all .cs files and assign them to their owning assemblies.
     Returns a dictionary mapping GUIDs to lists of .cs file paths.
     """
     root = Path(root_path).resolve()
@@ -157,7 +157,7 @@ def main():
     asmdef_dict = load_asmdef_dictionary(args.file)
 
     # Analyse the files
-    assembly_files, unassigned_files = analyze_assembly_files(asmdef_dict, args.root)
+    assembly_files, unassigned_files = analyse_assembly_files(asmdef_dict, args.root)
 
     if assembly_files is None:
         sys.exit(1)

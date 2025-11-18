@@ -49,8 +49,8 @@ def load_env_defaults():
     if os.getenv("DICT_FILE"):
         defaults["dict_file"] = os.getenv("DICT_FILE")
 
-    if os.getenv("ANALYZE_FILES"):
-        defaults["analyze_files"] = os.getenv("ANALYZE_FILES").lower() in ("true", "1", "yes")
+    if os.getenv("ANALYSE_FILES"):
+        defaults["analyse_files"] = os.getenv("ANALYSE_FILES").lower() in ("true", "1", "yes")
 
     if os.getenv("ALLOW_CHILD_NAMESPACES"):
         defaults["allow_child_namespaces"] = os.getenv("ALLOW_CHILD_NAMESPACES").lower() in ("true", "1", "yes")
@@ -66,7 +66,7 @@ def main():
         description="Analyse assembly definitions for cyclic dependencies",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Configuration can be provided via .env file with variables:\n"
-        "  ROOT_PATH, DETAILED, DEPTH, OUTPUT_PATH, DICT_FILE, ANALYZE_FILES, ALLOW_CHILD_NAMESPACES",
+        "  ROOT_PATH, DETAILED, DEPTH, OUTPUT_PATH, DICT_FILE, ANALYSE_FILES, ALLOW_CHILD_NAMESPACES",
     )
     parser.add_argument(
         "root_path",
@@ -93,15 +93,15 @@ def main():
         help="Name of the intermediate dictionary file (default: ./.work/asmdef_dictionary.json)",
     )
     parser.add_argument(
-        "--analyze-files",
+        "--analyse-files",
         action="store_true",
-        default=env_defaults.get("analyze_files", False),
-        help="Analyze and list all .cs files for each assembly",
+        default=env_defaults.get("analyse_files", False),
+        help="Analyse and list all .cs files for each assembly",
     )
     parser.add_argument(
         "--file-report",
         action="store_true",
-        help="Print a summary report of files per assembly (requires --analyze-files)",
+        help="Print a summary report of files per assembly (requires --analyse-files)",
     )
     parser.add_argument(
         "--allow-child-namespaces",
@@ -129,7 +129,7 @@ def main():
     script_dir = Path(__file__).parent
     dict_script = script_dir / "asmdef_dictionary.py"
     cyclic_script = script_dir / "asmdef_cyclic_report.py"
-    file_analyzer_script = script_dir / "asmdef_file_analyzer.py"
+    file_analyser_script = script_dir / "asmdef_file_analyser.py"
 
     # Verify scripts exist
     if not dict_script.exists():
@@ -140,8 +140,8 @@ def main():
         print(f"Error: Script not found: {cyclic_script}", file=sys.stderr)
         sys.exit(1)
 
-    if args.analyze_files and not file_analyzer_script.exists():
-        print(f"Error: Script not found: {file_analyzer_script}", file=sys.stderr)
+    if args.analyse_files and not file_analyser_script.exists():
+        print(f"Error: Script not found: {file_analyser_script}", file=sys.stderr)
         sys.exit(1)
 
     print("=" * 60)
@@ -166,16 +166,16 @@ def main():
         print(f"\nError: Dictionary file '{args.dict_file}' was not created", file=sys.stderr)
         sys.exit(1)
 
-    # Optional: Analyze .cs files for each assembly
-    if args.analyze_files:
+    # Optional: Analyse .cs files for each assembly
+    if args.analyse_files:
         print("\n" + "=" * 60)
-        print("STEP 2: Analyzing .cs files for each assembly")
+        print("STEP 2: Analysing .cs files for each assembly")
         print("=" * 60)
 
-        # Build command for asmdef_file_analyzer.py
-        file_analyzer_cmd = [
+        # Build command for asmdef_file_analyser.py
+        file_analyser_cmd = [
             sys.executable,
-            str(file_analyzer_script),
+            str(file_analyser_script),
             "--file",
             args.dict_file,
             "--root",
@@ -183,28 +183,28 @@ def main():
         ]
 
         if args.file_report:
-            file_analyzer_cmd.append("--report")
+            file_analyser_cmd.append("--report")
 
-        # Run asmdef_file_analyzer.py
+        # Run asmdef_file_analyser.py
         try:
-            subprocess.run(file_analyzer_cmd, check=True, capture_output=False, text=True)
+            subprocess.run(file_analyser_cmd, check=True, capture_output=False, text=True)
         except subprocess.CalledProcessError as e:
-            print(f"\nError: Failed to analyze files (exit code {e.returncode})", file=sys.stderr)
+            print(f"\nError: Failed to analyse files (exit code {e.returncode})", file=sys.stderr)
             sys.exit(1)
 
-        # NEW: Analyze namespaces
+        # NEW: Analyse namespaces
         print("\n" + "=" * 60)
-        print("STEP 3: Analyzing namespaces in C# files")
+        print("STEP 3: Analysing namespaces in C# files")
         print("=" * 60)
 
-        namespace_analyzer_script = script_dir / "asmdef_namespace_analyzer.py"
-        if not namespace_analyzer_script.exists():
-            print(f"Error: Script not found: {namespace_analyzer_script}", file=sys.stderr)
+        namespace_analyser_script = script_dir / "asmdef_namespace_analyser.py"
+        if not namespace_analyser_script.exists():
+            print(f"Error: Script not found: {namespace_analyser_script}", file=sys.stderr)
             sys.exit(1)
 
         namespace_cmd = [
             sys.executable,
-            str(namespace_analyzer_script),
+            str(namespace_analyser_script),
             "--file",
             args.dict_file,
             "--root",
@@ -222,11 +222,11 @@ def main():
         try:
             subprocess.run(namespace_cmd, check=True, capture_output=False, text=True)
         except subprocess.CalledProcessError as e:
-            print(f"\nError: Failed to analyze namespaces (exit code {e.returncode})", file=sys.stderr)
+            print(f"\nError: Failed to analyse namespaces (exit code {e.returncode})", file=sys.stderr)
             sys.exit(1)
 
     print("\n" + "=" * 60)
-    step_num = 4 if args.analyze_files else 2
+    step_num = 4 if args.analyse_files else 2
     print(f"STEP {step_num}: Analysing cyclic dependencies")
     print("=" * 60)
 

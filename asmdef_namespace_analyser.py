@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Analyze C# file namespaces within assembly definitions.
+Analyse C# file namespaces within assembly definitions.
 Detects namespace mismatches and files without namespace declarations.
 """
 
@@ -135,9 +135,9 @@ def extract_namespace(file_path):
     return namespaces[0] if namespaces else None
 
 
-def analyze_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=True):
+def analyse_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=True):
     """
-    Analyze namespace declarations in C# files for each assembly.
+    Analyse namespace declarations in C# files for each assembly.
 
     Args:
         asmdef_dict: The assembly definition dictionary
@@ -154,7 +154,7 @@ def analyze_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=T
         return None
 
     stats = {
-        "total_files_analyzed": 0,
+        "total_files_analysed": 0,
         "files_with_namespaces": 0,
         "files_without_namespaces": 0,
         "namespace_mismatches": 0,
@@ -174,7 +174,7 @@ def analyze_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=T
 
         analysis = {
             "rootNamespace": root_namespace,
-            "filesAnalyzed": len(cs_files),
+            "filesAnalysed": len(cs_files),
             "namespacesByFile": {},
             "mismatchedFiles": [],
             "filesWithoutNamespace": [],
@@ -213,7 +213,7 @@ def analyze_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=T
                     analysis["mismatchedFiles"].append({"file": cs_file, "namespace": namespace})
                     stats["namespace_mismatches"] += 1
 
-            stats["total_files_analyzed"] += 1
+            stats["total_files_analysed"] += 1
 
         # Get unique namespaces that don't match root (excluding valid child namespaces if allowed)
         if root_namespace:
@@ -244,7 +244,7 @@ def print_namespace_report(stats, asmdef_dict, allow_child_namespaces=True):
     child_ns_mode = "ENABLED" if allow_child_namespaces else "DISABLED"
     print(f"Child namespace allowance: {child_ns_mode}")
 
-    print(f"\nTotal files analyzed: {stats['total_files_analyzed']}")
+    print(f"\nTotal files analysed: {stats['total_files_analysed']}")
     print(f"Files with namespaces: {stats['files_with_namespaces']}")
     print(f"Files without namespaces: {stats['files_without_namespaces']}")
     print(f"Namespace mismatches: {stats['namespace_mismatches']}")
@@ -341,7 +341,7 @@ def create_namespace_problems_report(asmdef_dict):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze C# namespace declarations in assembly definitions")
+    parser = argparse.ArgumentParser(description="Analyse C# namespace declarations in assembly definitions")
     parser.add_argument("--file", default="asmdef_dictionary.json", help="Path to the asmdef dictionary JSON file")
     parser.add_argument("--root", required=True, help="Root path that was used to generate the dictionary")
     parser.add_argument(
@@ -367,12 +367,12 @@ def main():
     # Load the asmdef dictionary
     asmdef_dict = load_asmdef_dictionary(args.file)
 
-    # Analyze namespaces
-    print(f"Analyzing namespaces in C# files...")
+    # Analyse namespaces
+    print(f"Analysing namespaces in C# files...")
     if not allow_child_namespaces:
         print("(Running in strict mode - child namespaces not allowed)")
 
-    enhanced_dict, stats = analyze_assembly_namespaces(asmdef_dict, args.root, allow_child_namespaces)
+    enhanced_dict, stats = analyse_assembly_namespaces(asmdef_dict, args.root, allow_child_namespaces)
 
     if enhanced_dict is None:
         sys.exit(1)

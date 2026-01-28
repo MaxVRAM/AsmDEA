@@ -14,8 +14,17 @@ from .constants import (
     METADATA_KEY,
     NodeState,
 )
+from .exceptions import (
+    AsmdefError,
+    AsmdefFileNotFoundError,
+    InvalidFormatError,
+    ConfigurationError,
+    CyclicDependencyError,
+)
 from .file_io import load_asmdef_dict, save_json_report
 from .path_utils import validate_directory
+from .asmdef_dict import filter_assemblies, get_metadata, set_metadata
+from .script_runner import ScriptRunner
 
 __all__ = [
     "ASMDEF_EXTENSION",
@@ -30,7 +39,16 @@ __all__ = [
     "DEFAULT_ALLOW_CHILD_NAMESPACES",
     "METADATA_KEY",
     "NodeState",
+    "AsmdefError",
+    "AsmdefFileNotFoundError",
+    "InvalidFormatError",
+    "ConfigurationError",
+    "CyclicDependencyError",
     "load_asmdef_dict",
     "save_json_report",
     "validate_directory",
+    "filter_assemblies",
+    "get_metadata",
+    "set_metadata",
+    "ScriptRunner",
 ]

@@ -74,7 +74,7 @@ def flatten_directory(details, src_dir, dest_dir) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Flatten directory structure by copying .CS files.")
-    parser.add_argument("--details", type=bool, default=True, help="Comment .CS files with asmdef name and path.")
+    parser.add_argument("--details", action="store_true", help="Comment .CS files with asmdef name and path.")
     parser.add_argument("--src_dir", type=str, default=SRC_DIR, help="Source directory containing .CS files.")
     parser.add_argument("--dest_dir", type=str, default=DEST_DIR, help="Destination directory for flattened files.")
 

@@ -10,10 +10,18 @@ import argparse
 import re
 from pathlib import Path
 from collections import defaultdict
+from typing import Dict, List, Any, Tuple, Optional
 
 
-def load_asmdef_dictionary(filepath):
-    """Load the asmdef dictionary from JSON file."""
+def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
+    """Load the asmdef dictionary from JSON file.
+
+    Args:
+        filepath: Path to the JSON dictionary file
+
+    Returns:
+        Dictionary mapping GUIDs to assembly data
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -22,10 +30,15 @@ def load_asmdef_dictionary(filepath):
         sys.exit(1)
 
 
-def extract_namespace_from_cs_file(file_path):
-    """
-    Extract namespace declarations from a C# file.
-    Returns a list of namespace strings found in the file.
+def extract_namespace_from_cs_file(file_path: Path) -> List[str]:
+    """Extract namespace declarations from a C# file.
+
+    Args:
+        file_path: Path to the C# file
+
+    Returns:
+        List of namespace strings found in the file
+
     Handles both traditional and file-scoped namespace declarations.
     """
     namespaces = []
@@ -77,7 +90,16 @@ def extract_namespace_from_cs_file(file_path):
     return namespaces
 
 
-def is_namespace_match(file_namespace, root_namespace):
+def is_namespace_match(file_namespace: str, root_namespace: str) -> bool:
+    """Check if file namespace matches expected root namespace.
+
+    Args:
+        file_namespace: Namespace declared in the file
+        root_namespace: Expected root namespace from assembly
+
+    Returns:
+        True if namespaces match exactly
+    """
     """
     Check if a file's namespace matches or is a child of the root namespace.
     Returns True if it matches, False otherwise.

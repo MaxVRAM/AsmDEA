@@ -9,10 +9,18 @@ import sys
 import argparse
 from pathlib import Path
 from collections import defaultdict
+from typing import Dict, List, Any, Optional
 
 
-def load_asmdef_dictionary(filepath):
-    """Load the asmdef dictionary from JSON file."""
+def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
+    """Load the asmdef dictionary from JSON file.
+
+    Args:
+        filepath: Path to the JSON dictionary file
+
+    Returns:
+        Dictionary mapping GUIDs to assembly data
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -21,8 +29,16 @@ def load_asmdef_dictionary(filepath):
         sys.exit(1)
 
 
-def build_path_to_guid_mapping(asmdef_dict, root_path):
-    """Build a mapping from folder paths to GUIDs."""
+def build_path_to_guid_mapping(asmdef_dict: Dict[str, Any], root_path: str) -> Dict[Path, str]:
+    """Build a mapping from folder paths to GUIDs.
+
+    Args:
+        asmdef_dict: Dictionary of assembly definitions
+        root_path: Root directory path
+
+    Returns:
+        Dictionary mapping directory paths to assembly GUIDs
+    """
     path_to_guid = {}
     root = Path(root_path).resolve()
 
@@ -37,10 +53,15 @@ def build_path_to_guid_mapping(asmdef_dict, root_path):
     return path_to_guid
 
 
-def find_owning_assembly(file_path, path_to_guid):
-    """
-    Find which assembly owns a given .cs file.
-    Returns the GUID of the owning assembly, or None if not found.
+def find_owning_assembly(file_path: Path, path_to_guid: Dict[Path, str]) -> Optional[str]:
+    """Find which assembly owns a given .cs file.
+
+    Args:
+        file_path: Path to the .cs file
+        path_to_guid: Mapping of directory paths to assembly GUIDs
+
+    Returns:
+        GUID of the owning assembly, or None if not found
 
     The owning assembly is the one in the nearest parent directory
     that contains an asmdef file.

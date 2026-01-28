@@ -2,3 +2,6 @@
 
 # Required for .env file configuration support
 python-dotenv>=1.0.0
+
+# Type checking and static analysis (Phase 3+)
+mypy>=1.8.0

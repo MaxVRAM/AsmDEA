@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
+"""Detect and report cyclic dependencies in Unity Assembly Definitions."""
+
 import json
 import sys
 import argparse
 from collections import defaultdict
 from pathlib import Path
+from typing import Dict, List, Any, Set, Tuple, Optional, DefaultDict
 
 
-def load_asmdef_dictionary(filepath):
-    """Load the asmdef dictionary from JSON file."""
+def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
+    """Load the asmdef dictionary from a JSON file.
+
+    Args:
+        filepath: Path to the JSON dictionary file
+
+    Returns:
+        Dictionary mapping GUIDs to assembly data
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -16,8 +26,17 @@ def load_asmdef_dictionary(filepath):
         sys.exit(1)
 
 
-def build_dependency_graph(asmdef_dict):
-    """Build a dependency graph from the asmdef dictionary."""
+def build_dependency_graph(
+    asmdef_dict: Dict[str, Any],
+) -> Tuple[DefaultDict[str, List[str]], Dict[str, str], Dict[str, str]]:
+    """Build a dependency graph from the asmdef dictionary.
+
+    Args:
+        asmdef_dict: Dictionary of assembly definitions keyed by GUID
+
+    Returns:
+        Tuple of (graph, guid_to_name, name_to_guid) mappings
+    """
     # Filter out metadata entries (those starting with underscore)
     assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
@@ -47,8 +66,15 @@ def build_dependency_graph(asmdef_dict):
     return graph, guid_to_name, name_to_guid
 
 
-def detect_cycles(graph):
-    """Detect cycles in the dependency graph using DFS."""
+def detect_cycles(graph: Dict[str, List[str]]) -> List[List[str]]:
+    """Detect cycles in the dependency graph using DFS.
+
+    Args:
+        graph: Dependency graph as adjacency list
+
+    Returns:
+        List of cycles, where each cycle is a list of node names
+    """
     # Track node states: 0 = unvisited, 1 = visiting, 2 = visited
     states = {node: 0 for node in graph}
     cycles = []

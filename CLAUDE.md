@@ -274,9 +274,7 @@ After completing the refactoring, all 5 legacy root scripts were removed:
 
 ### Solution: `asmdef_cli.py`
 
-A unified command-line interface has been created with the following structure:
-
-**File:** `asmdef_cli.py` (500+ lines)
+There was a failed attempt at a CLI script, which has been removed. A new CLI implementation must be designed and integrated.
 
 **Commands:**
 1. `analyze` (alias: `all`) - Run complete analysis pipeline
@@ -303,30 +301,12 @@ python asmdef_cli.py detect-cycles
 python asmdef_cli.py --help
 ```
 
-### Current Implementation Issues
-
-The CLI script has been created but has **constructor signature mismatches** between the CLI code and the actual analyzer classes:
-
-**Expected Signatures:**
-
-```python
-CycleAnalyzer(asmdef_dict: dict)
-FileAnalyzer(asmdef_dict: dict, root_path: Path)
-NamespaceAnalyzer(asmdef_dict: dict, root_path: Path, allow_child_namespaces: bool)
-```
-
-**CLI Errors:**
-- ❌ CLI was trying to pass `AnalysisConfig` objects instead of direct parameters
-- ❌ Dictionary building uses `analysis/dictionary.py` function (not in `analyzers/`)
-- ❌ Some reporter method names don't match (e.g., `NamespaceAnalysisReporter` vs `NamespaceReporter`)
-
 ### Remaining Work
 
-1. **Fix CLI Constructor Calls** - Update all analyzer instantiations to use correct signatures
-2. **Integrate Dictionary Builder** - Either move `analysis/dictionary.py` into `analyzers/` or import it properly
-3. **Test Complete Pipeline** - Run `python asmdef_cli.py analyze` on real Unity project
-4. **Update Documentation** - Complete CLI usage section in README.md (partially done)
-5. **Validate Exit Codes** - Ensure proper return codes (0 = success, 1 = errors/cycles, 130 = interrupt)
+1. **Create CLI script(s)**
+2. **Test Complete Pipeline** - Run `python asmdef_cli.py analyze` on real Unity project
+3. **Update Documentation** - Complete CLI usage section in README.md (partially done)
+4. **Validate Exit Codes** - Ensure proper return codes (0 = success, 1 = errors/cycles, 130 = interrupt)
 
 ### Success Criteria
 

@@ -1,4 +1,24 @@
-"""Utilities for working with asmdef dictionary structures."""
+"""Utilities for working with asmdef dictionary structures.
+
+Provides functions for manipulating asmdef dictionaries - the central data
+structure mapping assembly GUIDs to their definitions, dependencies, and
+file assignments.
+
+An asmdef dictionary has:
+    - Assembly entries: GUID -> {name, references, csFiles, ...}
+    - Metadata entry: "_metadata" -> {rootPath, analysisDate, ...}
+
+Key functions:
+    - filter_assemblies: Remove metadata entries, get only assembly data
+    - get_metadata: Extract metadata section
+    - set_metadata: Update metadata section
+
+Usage:
+    from common import filter_assemblies, get_metadata
+
+    assemblies = filter_assemblies(asmdef_dict)
+    metadata = get_metadata(asmdef_dict)
+"""
 
 from typing import Any, cast
 

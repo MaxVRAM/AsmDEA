@@ -1,9 +1,38 @@
-"""Base reporter class for consistent reporting interface."""
+"""Base reporter class for consistent reporting interface.
+
+Provides an abstract base class that all reporters inherit from, ensuring
+consistent console output, JSON serialization, and file saving across
+different analysis types.
+
+Key classes:
+    - BaseReporter: Abstract base for all reporter implementations
+
+Subclasses must implement:
+    - print_console_report: Format and display results
+    - generate_json_report: Convert results to JSON-serializable dict
+
+Usage:
+    from reporting import BaseReporter
+
+    class MyReporter(BaseReporter):
+        def print_console_report(self, data):
+            logger.info("Results: %s", data)
+
+        def generate_json_report(self, data):
+            return {"results": data}
+
+    reporter = MyReporter(verbose=True)
+    reporter.save_json_report(data, "output.json")
+"""
 
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+
+from common import get_logger
+
+logger = get_logger(__name__)
 
 
 class BaseReporter(ABC):
@@ -57,4 +86,4 @@ class BaseReporter(ABC):
             json.dump(report, f, indent=2, ensure_ascii=False)
 
         if self.verbose:
-            print(f"Report saved to: {output_path}")
+            logger.info("Report saved to: %s", output_path)

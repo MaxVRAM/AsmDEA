@@ -1,4 +1,26 @@
-"""Namespace analysis - pure analysis without reporting."""
+"""Namespace analysis - validates C# namespace declarations against assembly definitions.
+
+Analyzes C# files to check if their namespace declarations match or comply with
+the rootNamespace defined in their owning Assembly Definition. Supports both
+traditional namespace syntax and C# 10 file-scoped namespaces.
+
+Key classes:
+    - NamespaceAnalyzer: Main analyzer class for namespace compliance checking
+
+Features:
+    - Extracts namespace declarations from C# source files
+    - Validates against assembly root namespace
+    - Optional child namespace allowance
+    - Generates detailed reports with file-level statistics
+
+Usage:
+    from analyzers import NamespaceAnalyzer
+    from models import AnalysisConfig
+
+    config = AnalysisConfig(root_path="/path/to/unity")
+    analyzer = NamespaceAnalyzer(config)
+    report = analyzer.analyze(asmdef_dict)
+"""
 
 import re
 from pathlib import Path

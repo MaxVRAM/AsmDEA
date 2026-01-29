@@ -1,4 +1,21 @@
-"""Custom exceptions for asmdef analysis toolkit."""
+"""Custom exceptions for asmdef analysis toolkit.
+
+Defines a hierarchy of exceptions for different error conditions that can
+occur during Unity Assembly Definition analysis.
+
+Exception hierarchy:
+    AsmdefError (base)
+    ├── AsmdefFileNotFoundError: Missing .asmdef file
+    ├── InvalidFormatError: Malformed .asmdef or .meta file
+    ├── ConfigurationError: Invalid configuration parameters
+    └── CyclicDependencyError: Circular assembly references detected
+
+Usage:
+    from common import AsmdefFileNotFoundError
+
+    if not asmdef_path.exists():
+        raise AsmdefFileNotFoundError(f"File not found: {asmdef_path}")
+"""
 
 
 class AsmdefError(Exception):

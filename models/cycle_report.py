@@ -1,4 +1,21 @@
-"""Data models for cycle detection and reporting."""
+"""Data models for cycle detection and reporting.
+
+Defines data structures for representing cyclic dependency analysis results,
+including detected cycles, dependency trees, and summary statistics.
+
+Model hierarchy:
+    - CyclePath: Represents a single circular dependency path
+    - CycleDetail: Detailed information about one cycle including dependency tree
+    - CycleReport: Complete report with all detected cycles
+    - CycleSummary: Aggregate statistics (cycle count, min/max/avg length)
+
+Usage:
+    from models import CycleReport, CycleDetail, CyclePath
+
+    report = CycleReport(cycles=[...], graph={...})
+    summary = report.generate_summary()
+    json_report = report.to_dict()
+"""
 
 from dataclasses import dataclass, field
 from typing import Any

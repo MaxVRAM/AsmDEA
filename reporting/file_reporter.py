@@ -1,8 +1,32 @@
-"""Reporter for file analysis results."""
+"""Reporter for file analysis results.
+
+Formats and displays C# file ownership analysis showing which files belong
+to which assemblies and identifying orphaned files without assembly assignments.
+
+Key classes:
+    - FileAnalysisReporter: Formats and outputs file ownership results
+
+Features:
+    - Summary statistics (total files, assignments, orphans)
+    - File count per assembly sorted by size
+    - Detailed file listings (optional, configurable limit)
+    - JSON export with complete file paths
+
+Usage:
+    from reporting import FileAnalysisReporter
+
+    reporter = FileAnalysisReporter(verbose=True)
+    reporter.print_console_report(analysis_data)
+    reporter.print_detailed_report(analysis_data, max_files_per_assembly=20)
+"""
 
 from typing import Any
 
+from common import get_logger
+
 from .base import BaseReporter
+
+logger = get_logger(__name__)
 
 
 class FileAnalysisReporter(BaseReporter):
@@ -17,19 +41,19 @@ class FileAnalysisReporter(BaseReporter):
         asmdef_dict = data.get("asmdef_dict", {})
         stats = data.get("stats", {})
 
-        print(f"\n{'=' * 60}")
-        print("C# FILE ANALYSIS REPORT")
-        print(f"{'=' * 60}\n")
+        logger.info("\n%s", "=" * 60)
+        logger.info("C# FILE ANALYSIS REPORT")
+        logger.info("%s\n", "=" * 60)
 
-        print(f"Total .cs files found: {stats.get('total_cs_files', 0)}")
-        print(f"Files assigned to assemblies: {stats.get('assigned_files', 0)}")
-        print(f"Orphaned files (no owning assembly): {stats.get('orphaned_files', 0)}\n")
+        logger.info("Total .cs files found: %d", stats.get("total_cs_files", 0))
+        logger.info("Files assigned to assemblies: %d", stats.get("assigned_files", 0))
+        logger.info("Orphaned files (no owning assembly): %d\n", stats.get("orphaned_files", 0))
 
         # Show assemblies with file counts
         assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
         if assemblies:
-            print("Files per assembly:")
+            logger.info("Files per assembly:")
             assembly_list = []
             for guid, assembly_data in assemblies.items():
                 name = assembly_data.get("name", guid)
@@ -41,9 +65,9 @@ class FileAnalysisReporter(BaseReporter):
 
             for name, count in assembly_list:
                 if count > 0:
-                    print(f"  {name}: {count} files")
+                    logger.info("  %s: %d files", name, count)
 
-        print()
+        logger.info("")
 
     def generate_json_report(self, data: dict[str, Any]) -> dict[str, Any]:
         """Generate JSON-serializable file analysis report.
@@ -86,9 +110,9 @@ class FileAnalysisReporter(BaseReporter):
         asmdef_dict = data.get("asmdef_dict", {})
         assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
-        print(f"\n{'=' * 60}")
-        print("DETAILED FILE ASSIGNMENTS")
-        print(f"{'=' * 60}\n")
+        logger.info("\n%s", "=" * 60)
+        logger.info("DETAILED FILE ASSIGNMENTS")
+        logger.info("%s\n", "=" * 60)
 
         for guid, assembly_data in assemblies.items():
             name = assembly_data.get("name", guid)
@@ -97,12 +121,12 @@ class FileAnalysisReporter(BaseReporter):
             if not cs_files:
                 continue
 
-            print(f"\n{name} ({len(cs_files)} files):")
+            logger.info("\n%s (%d files):", name, len(cs_files))
 
             for _i, file_path in enumerate(cs_files[:max_files_per_assembly]):
-                print(f"  - {file_path}")
+                logger.info("  - %s", file_path)
 
             if len(cs_files) > max_files_per_assembly:
-                print(f"  ... and {len(cs_files) - max_files_per_assembly} more")
+                logger.info("  ... and %d more", len(cs_files) - max_files_per_assembly)
 
-        print()
+        logger.info("")

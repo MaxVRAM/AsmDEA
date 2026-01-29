@@ -1,4 +1,27 @@
-"""Cycle detection analyzer - pure analysis without reporting."""
+"""Cycle detection analyzer - detects circular dependencies in assembly references.
+
+Analyzes Unity Assembly Definition dependencies to find circular reference chains
+that can cause compilation issues. Uses depth-first search with state tracking
+to detect cycles in the dependency graph.
+
+Key classes:
+    - CycleAnalyzer: Main analyzer for detecting dependency cycles
+
+Features:
+    - Builds dependency graph from assembly references
+    - Detects all cycles using DFS traversal
+    - Generates detailed reports with cycle paths
+    - Builds dependency trees showing cycle context
+
+Usage:
+    from analyzers import CycleAnalyzer
+    from models import AnalysisConfig
+
+    config = AnalysisConfig(dict_file="asmdef_dictionary.json")
+    analyzer = CycleAnalyzer(config)
+    report = analyzer.analyze(asmdef_dict)
+    print(f"Found {report.total_cycles} cycles")
+"""
 
 from collections import defaultdict
 from typing import Any

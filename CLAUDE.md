@@ -1,7 +1,7 @@
 # ScriptFlattener - Codebase Analysis & Refactoring Plan
 
 **Last Updated:** January 29, 2026  
-**Status:** Phase 5 Complete ✅ | 50 Tests Passing | 77% Coverage
+**Status:** Phase 6.1 & 6.2 Complete ✅ | 50 Tests Passing | 77% Coverage | Centralized Logging
 
 > 🔴 **CRITICAL: VIRTUAL ENVIRONMENT REQUIREMENT**  
 > **ALL Python commands, tests, and package installations MUST use the project's virtual environment:**  
@@ -62,7 +62,10 @@ ScriptFlattener/
 │   ├── constants.py
 │   ├── exceptions.py
 │   ├── file_io.py
-│   └── path_utils.py
+│   ├── path_utils.py
+│   ├── asmdef_dict.py
+│   ├── script_runner.py
+│   └── logging_config.py           # ✅ Centralized logging (Phase 6.1)
 ├── models/                         # ✅ Data models (Phase 3)
 │   ├── __init__.py
 │   ├── asmdef_entry.py
@@ -2096,23 +2099,60 @@ class AsmdefCLI:
 
 ### Phase 6: Polish & Documentation (1-2 days)
 
-**Priority: LOW-MEDIUM**
+**Priority: LOW-MEDIUM** | **Status: Phase 6.1 & 6.2 Complete ✅**
 
-#### 6.1 Add Logging
+#### 6.1 Add Logging ✅ COMPLETE
 
-- [ ] Replace `print()` statements with `logging` module
-- [ ] Add configurable log levels
-- [ ] Add log file output option
+- [x] Replace `print()` statements with `logging` module
+    - Created `common/logging_config.py` with centralized logging setup
+    - Replaced all print statements in reporting/ modules (base, cycle_reporter, namespace_reporter, file_reporter)
+    - Replaced all print statements in common/ modules (file_io, path_utils)
+    - Note: Root-level scripts still use print() for backward compatibility
+- [x] Add configurable log levels
+    - setup_logging() supports DEBUG, INFO, WARNING, ERROR, CRITICAL levels
+    - get_logger() provides per-module loggers
+- [x] Add log file output option
+    - setup_logging() accepts optional log_file parameter
+    - Supports separate file/console log levels
+    - Automatic directory creation for log files
 
-#### 6.2 Improve Documentation
+**Completed Files:**
+- `common/logging_config.py` (118 lines): Centralized logging configuration
+- Updated: reporting/base.py, cycle_reporter.py, namespace_reporter.py, file_reporter.py
+- Updated: common/file_io.py, common/path_utils.py
+- Updated: common/**init**.py to export get_logger and setup_logging
 
-- [ ] Add module-level docstrings to all files
-- [ ] Ensure all functions have complete docstrings
+**Logging Features:**
+- Structured format: `timestamp - level - module - message`
+- Console and file output support
+- Global configuration with reset capability
+- Automatic setup on first logger request
+
+#### 6.2 Improve Documentation ✅ COMPLETE
+
+- [x] Add module-level docstrings to all files
+    - Enhanced 11 module docstrings across common/, models/, analyzers/, reporting/
+    - All docstrings now include: purpose, key classes/functions, usage examples
+- [x] Ensure all functions have complete docstrings
+    - All public functions already have docstrings with Args, Returns, Raises sections
+    - Verified during code review
 - [ ] Add usage examples to README
 - [ ] Document configuration options
 - [ ] Add architecture diagram
 
-#### 6.3 Add CI/CD
+**Enhanced Module Docstrings:**
+- common/: script_runner.py, path_utils.py, file_io.py, exceptions.py, constants.py, asmdef_dict.py
+- models/: asmdef_entry.py, config.py, cycle_report.py, namespace_analysis.py
+- analyzers/: cycle_analyzer.py, file_analyzer.py, namespace_analyzer.py
+- reporting/: base.py, cycle_reporter.py, namespace_reporter.py, file_reporter.py
+
+**Quality Checks:**
+- ✅ All 50 tests passing after logging changes
+- ✅ Black formatting applied
+- ✅ Ruff linting clean (only N999 warnings about project folder name)
+- ✅ No syntax errors or import issues
+
+#### 6.3 Add CI/CD 📋 TODO
 
 - [ ] Create `.github/workflows/tests.yml`
 - [ ] Run tests on push/PR

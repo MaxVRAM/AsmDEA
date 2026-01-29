@@ -1,4 +1,20 @@
-"""Data models for namespace analysis results."""
+"""Data models for namespace analysis results.
+
+Defines data structures for tracking C# namespace compliance against
+Unity Assembly Definition root namespaces.
+
+Key models:
+    - NamespaceMatch: Individual file namespace analysis result
+    - AssemblyNamespaceStats: Aggregate statistics per assembly
+    - NamespaceAnalysisReport: Complete analysis report with summary stats
+
+Usage:
+    from models import NamespaceAnalysisReport, AssemblyNamespaceStats
+
+    report = NamespaceAnalysisReport()
+    report.add_assembly_stats(guid, AssemblyNamespaceStats(...))
+    problem_assemblies = report.get_problem_assemblies()
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path

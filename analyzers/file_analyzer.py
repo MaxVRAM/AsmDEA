@@ -1,4 +1,27 @@
-"""File ownership analyzer - assigns C# files to assemblies."""
+"""File ownership analyzer - assigns C# files to their owning assemblies.
+
+Scans a Unity project directory to find all .cs files and determines which
+Assembly Definition owns each file based on directory hierarchy. Files
+belong to the nearest .asmdef file in their parent directory chain.
+
+Key classes:
+    - FileAnalyzer: Main analyzer for C# file-to-assembly mapping
+
+Features:
+    - Recursively scans for .cs files
+    - Maps files to owning assemblies by directory proximity
+    - Ignores Unity-generated Temp folders
+    - Identifies orphaned files (no owning assembly)
+    - Generates statistics (total files, assignments, orphans)
+
+Usage:
+    from analyzers import FileAnalyzer
+    from models import AnalysisConfig
+
+    config = AnalysisConfig(root_path="/path/to/unity")
+    analyzer = FileAnalyzer(config)
+    updated_dict = analyzer.analyze(asmdef_dict)
+"""
 
 from collections import defaultdict
 from pathlib import Path
@@ -79,9 +102,7 @@ class FileAnalyzer:
         """
         # Find all .cs files
         all_cs_files = self.root_path.rglob("*.cs")
-        cs_files = [
-            f for f in all_cs_files if not self.should_ignore_path(f.relative_to(self.root_path))
-        ]
+        cs_files = [f for f in all_cs_files if not self.should_ignore_path(f.relative_to(self.root_path))]
 
         # Assign files to assemblies
         assembly_files = defaultdict(list)

@@ -1,4 +1,18 @@
-"""Subprocess execution utilities for running analysis scripts."""
+"""Subprocess execution utilities for running analysis scripts.
+
+Provides the ScriptRunner class for managing subprocess execution with
+consistent error handling, logging, and result capture. Useful for
+orchestrating multiple analysis scripts in sequence.
+
+Key classes:
+    - ScriptRunner: Executes Python scripts as subprocesses with logging
+
+Usage:
+    from common import ScriptRunner
+
+    runner = ScriptRunner()
+    runner.run_script("asmdef_dictionary.py", ["--root", "path/to/project"])
+"""
 
 import subprocess
 import sys

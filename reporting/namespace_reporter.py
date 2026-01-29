@@ -1,10 +1,36 @@
-"""Reporter for namespace analysis results."""
+"""Reporter for namespace analysis results.
+
+Formats and displays namespace compliance analysis results showing how well
+C# file namespaces match their assembly's root namespace definitions.
+
+Key classes:
+    - NamespaceReporter: Formats and outputs namespace analysis results
+
+Features:
+    - Summary statistics (total files, match rates, compliance percentages)
+    - Per-assembly breakdown of matched/mismatched/missing namespaces
+    - Optional verbose mode showing specific file paths
+    - Highlights problem assemblies with warnings
+    - Supports both exact matching and child namespace allowance modes
+    - JSON export with detailed file-level information
+
+Usage:
+    from reporting import NamespaceReporter
+    from models import NamespaceAnalysisReport
+
+    reporter = NamespaceReporter(verbose=True, allow_child_namespaces=True)
+    reporter.print_console_report(analysis_report)
+    reporter.print_summary(analysis_report)
+"""
 
 from typing import Any
 
+from common import get_logger
 from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 from .base import BaseReporter
+
+logger = get_logger(__name__)
 
 
 class NamespaceReporter(BaseReporter):
@@ -26,25 +52,25 @@ class NamespaceReporter(BaseReporter):
         Args:
             report: NamespaceAnalysisReport with analysis results
         """
-        print(f"\n{'=' * 70}")
-        print("NAMESPACE ANALYSIS REPORT")
-        print(f"{'=' * 70}\n")
+        logger.info("\n%s", "=" * 70)
+        logger.info("NAMESPACE ANALYSIS REPORT")
+        logger.info("%s\n", "=" * 70)
 
-        print(f"Assemblies Analyzed: {report.total_assemblies}")
-        print(f"Total Files Analyzed: {report.total_files}")
-        print(f"Files with Matching Namespaces: {report.total_matched}")
-        print(f"Files with Mismatched Namespaces: {report.total_mismatched}")
-        print(f"Files without Namespaces: {report.total_no_namespace}")
-        print(f"Overall Match Rate: {report.overall_match_percentage:.1f}%\n")
+        logger.info("Assemblies Analyzed: %d", report.total_assemblies)
+        logger.info("Total Files Analyzed: %d", report.total_files)
+        logger.info("Files with Matching Namespaces: %d", report.total_matched)
+        logger.info("Files with Mismatched Namespaces: %d", report.total_mismatched)
+        logger.info("Files without Namespaces: %d", report.total_no_namespace)
+        logger.info("Overall Match Rate: %.1f%%\n", report.overall_match_percentage)
 
         # Show problem assemblies
         problem_assemblies = report.get_problem_assemblies()
 
         if not problem_assemblies:
-            print("✓ All assemblies have perfect namespace compliance!\n")
+            logger.info("✓ All assemblies have perfect namespace compliance!\n")
             return
 
-        print(f"⚠ {len(problem_assemblies)} assemblies have namespace issues:\n")
+        logger.warning("⚠ %d assemblies have namespace issues:\n", len(problem_assemblies))
 
         for stats in problem_assemblies:
             self._print_assembly_stats(stats)
@@ -55,34 +81,34 @@ class NamespaceReporter(BaseReporter):
         Args:
             stats: AssemblyNamespaceStats for one assembly
         """
-        print(f"Assembly: {stats.assembly_name}")
-        print(f"  Root Namespace: {stats.root_namespace or '(none)'}")
-        print(f"  Total Files: {stats.total_files}")
-        print(f"  Matched: {stats.matched_files}")
+        logger.info("Assembly: %s", stats.assembly_name)
+        logger.info("  Root Namespace: %s", stats.root_namespace or "(none)")
+        logger.info("  Total Files: %d", stats.total_files)
+        logger.info("  Matched: %d", stats.matched_files)
 
         if self.allow_child_namespaces:
-            print(f"  Child Namespaces: {stats.child_namespace_files}")
-            print(f"  Compliance: {stats.compliance_percentage:.1f}%")
+            logger.info("  Child Namespaces: %d", stats.child_namespace_files)
+            logger.info("  Compliance: %.1f%%", stats.compliance_percentage)
         else:
-            print(f"  Match Rate: {stats.match_percentage:.1f}%")
+            logger.info("  Match Rate: %.1f%%", stats.match_percentage)
 
         if stats.unmatched_files > 0:
-            print(f"  ⚠ Mismatched: {stats.unmatched_files}")
+            logger.warning("  ⚠ Mismatched: %d", stats.unmatched_files)
             if self.verbose and stats.unmatched_file_paths:
                 for path in stats.unmatched_file_paths[:5]:  # Show max 5
-                    print(f"     - {path}")
+                    logger.info("     - %s", path)
                 if len(stats.unmatched_file_paths) > 5:
-                    print(f"     ... and {len(stats.unmatched_file_paths) - 5} more")
+                    logger.info("     ... and %d more", len(stats.unmatched_file_paths) - 5)
 
         if stats.no_namespace_files > 0:
-            print(f"  ⚠ No Namespace: {stats.no_namespace_files}")
+            logger.warning("  ⚠ No Namespace: %d", stats.no_namespace_files)
             if self.verbose and stats.no_namespace_paths:
                 for path in stats.no_namespace_paths[:5]:
-                    print(f"     - {path}")
+                    logger.info("     - %s", path)
                 if len(stats.no_namespace_paths) > 5:
-                    print(f"     ... and {len(stats.no_namespace_paths) - 5} more")
+                    logger.info("     ... and %d more", len(stats.no_namespace_paths) - 5)
 
-        print()
+        logger.info("")
 
     def generate_json_report(self, report: NamespaceAnalysisReport) -> dict[str, Any]:
         """Generate JSON-serializable namespace report.
@@ -129,10 +155,14 @@ class NamespaceReporter(BaseReporter):
         Args:
             report: NamespaceAnalysisReport to summarize
         """
-        print(f"\n{'=' * 60}")
-        print("NAMESPACE ANALYSIS SUMMARY")
-        print(f"{'=' * 60}")
-        print(f"Files Analyzed: {report.total_files}")
-        print(f"Match Rate: {report.overall_match_percentage:.1f}%")
-        print(f"Problem Assemblies: {len(report.get_problem_assemblies())}/{report.total_assemblies}")
-        print(f"{'=' * 60}\n")
+        logger.info("\n%s", "=" * 60)
+        logger.info("NAMESPACE ANALYSIS SUMMARY")
+        logger.info("%s", "=" * 60)
+        logger.info("Files Analyzed: %d", report.total_files)
+        logger.info("Match Rate: %.1f%%", report.overall_match_percentage)
+        logger.info(
+            "Problem Assemblies: %d/%d",
+            len(report.get_problem_assemblies()),
+            report.total_assemblies,
+        )
+        logger.info("%s\n", "=" * 60)

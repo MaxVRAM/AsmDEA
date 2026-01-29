@@ -1,4 +1,25 @@
-"""Configuration data models for analysis scripts."""
+"""Configuration data models for analysis scripts.
+
+Defines the AnalysisConfig class for managing analysis parameters and
+settings across different analysis tools.
+
+Key models:
+    - AnalysisConfig: Centralized configuration for analysis runs
+        - root_path: Unity project root directory
+        - dict_file: Path to asmdef dictionary
+        - output_dir: Output directory for reports
+        - verbose: Enable detailed logging
+        - allow_child_namespaces: Accept child namespace declarations
+
+Usage:
+    from models import AnalysisConfig
+
+    config = AnalysisConfig(
+        root_path="/path/to/unity/project",
+        dict_file="asmdef_dictionary.json",
+        verbose=True
+    )
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path

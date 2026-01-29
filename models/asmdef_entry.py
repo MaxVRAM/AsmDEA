@@ -1,4 +1,25 @@
-"""Data models for Assembly Definition entries."""
+"""Data models for Assembly Definition entries.
+
+Defines the AsmdefEntry class representing a parsed Unity Assembly Definition
+(.asmdef) file. Unity .asmdef files define compilation boundaries and
+dependencies in Unity projects.
+
+Key models:
+    - AsmdefEntry: Represents a single .asmdef file with:
+        - name: Assembly name
+        - references: List of assembly dependencies (GUIDs or names)
+        - guid: Unique identifier
+        - rootNamespace: Default C# namespace for scripts
+        - platform constraints and other Unity-specific settings
+
+Usage:
+    from models import AsmdefEntry
+
+    entry = AsmdefEntry.from_dict(asmdef_data)
+    if entry.root_namespace:
+        check_namespace_compliance(entry)
+    json_output = entry.to_dict()
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path

@@ -24,7 +24,7 @@ class TestAsmdefEntry:
         assert entry.name == "TestAssembly"
         assert entry.root_namespace == "Test.Namespace"
         assert entry.references == ["GUID:abc123"]
-        assert entry.relative_path == Path("Assets/Scripts")
+        assert entry.file_path == Path("Assets/Scripts")
 
     def test_from_dict_with_all_fields(self):
         """Test creating AsmdefEntry with all optional fields."""
@@ -60,7 +60,6 @@ class TestAsmdefEntry:
             root_namespace="My.Namespace",
             references=["GUID:ref1"],
             file_path=Path("Assets/Scripts/MyAssembly.asmdef"),
-            relative_path=Path("Assets/Scripts"),
             include_platforms=[],
             exclude_platforms=[],
             allow_unsafe_code=False,
@@ -77,8 +76,9 @@ class TestAsmdefEntry:
         assert result["name"] == "MyAssembly"
         assert result["rootNamespace"] == "My.Namespace"
         assert result["references"] == ["GUID:ref1"]
-        assert result["allowUnsafeCode"] is False
-        assert result["autoReferenced"] is True
+        # Fields with False/empty values are excluded by to_dict()
+        assert "allowUnsafeCode" not in result
+        assert "autoReferenced" not in result  # True is default, excluded
 
 
 class TestAnalysisConfig:
@@ -120,17 +120,16 @@ class TestCycleReport:
         report = CycleReport(
             cycles=[],
             total_cycles=0,
-            assemblies_in_cycles=set(),
-            dependency_tree=None,
+            affected_nodes=[],
         )
 
         result = report.to_dict()
 
         assert "cycles" in result
         assert "totalCycles" in result
-        assert "assembliesInCycles" in result
+        assert "affectedNodes" in result
         assert result["totalCycles"] == 0
-        assert isinstance(result["assembliesInCycles"], list)
+        assert isinstance(result["affectedNodes"], list)
 
 
 class TestNamespaceAnalysisReport:
@@ -142,40 +141,35 @@ class TestNamespaceAnalysisReport:
 
         # Create a report with one assembly having problems
         stats1 = AssemblyNamespaceStats(
-            guid="GUID:assembly1",
             assembly_name="Assembly.Core",
+            assembly_guid="GUID:assembly1",
             root_namespace="MyProject.Core",
             total_files=10,
-            matching_files=10,
-            non_matching_files=0,
-            files_without_namespace=0,
-            match_percentage=100.0,
-            compliant=True,
-            matches=[],
+            matched_files=10,
+            unmatched_files=0,
+            no_namespace_files=0,
         )
 
         stats2 = AssemblyNamespaceStats(
-            guid="GUID:assembly2",
             assembly_name="Assembly.Bad",
+            assembly_guid="GUID:assembly2",
             root_namespace="MyProject.Bad",
             total_files=10,
-            matching_files=5,
-            non_matching_files=5,
-            files_without_namespace=0,
-            match_percentage=50.0,
-            compliant=False,
-            matches=[],
+            matched_files=5,
+            unmatched_files=5,
+            no_namespace_files=0,
         )
 
         report = NamespaceAnalysisReport(
-            assembly_stats=[stats1, stats2],
+            assembly_stats={
+                "GUID:assembly1": stats1,
+                "GUID:assembly2": stats2,
+            },
             total_assemblies=2,
-            compliant_assemblies=1,
-            non_compliant_assemblies=1,
         )
 
         problems = report.get_problem_assemblies()
 
         assert len(problems) == 1
         assert problems[0].assembly_name == "Assembly.Bad"
-        assert problems[0].compliant is False
+        assert problems[0].unmatched_files == 5

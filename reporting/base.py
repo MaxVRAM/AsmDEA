@@ -25,12 +25,17 @@ Usage:
     reporter.save_json_report(data, "output.json")
 """
 
+from __future__ import annotations
+
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from common import get_logger
+from common import get_console, get_logger
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 logger = get_logger(__name__)
 
@@ -41,13 +46,22 @@ class BaseReporter(ABC):
     Provides common functionality for console and JSON reporting.
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, console: Console | None = None):
         """Initialize reporter.
 
         Args:
             verbose: Enable verbose output
+            console: Rich Console instance (uses shared instance if not provided)
         """
         self.verbose = verbose
+        self._console = console
+
+    @property
+    def console(self) -> Console:
+        """Get the Rich Console for output."""
+        if self._console is None:
+            self._console = get_console()
+        return self._console
 
     @abstractmethod
     def print_console_report(self, data: Any) -> None:

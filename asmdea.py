@@ -33,7 +33,7 @@ except ImportError:
 
 from analysis.dictionary import build_asmdef_dictionary
 from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
-from common import get_logger, load_asmdef_dict, save_json_report, setup_logging
+from common import configure_console, get_logger, load_asmdef_dict, save_json_report, setup_logging
 from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter
 
 
@@ -62,6 +62,11 @@ Environment Variables (from .env file):
         """,
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable colored output (plain text mode)",
+    )
     parser.add_argument(
         "--log-level",
         default=get_env_or_default("LOG_LEVEL", "INFO"),
@@ -317,6 +322,9 @@ def main() -> int:
     if not args.command:
         parser.print_help()
         return 2
+
+    # Configure Rich console before any output
+    configure_console(plain=args.no_color)
 
     setup_logging(level=args.log_level)
     logger = get_logger(__name__)

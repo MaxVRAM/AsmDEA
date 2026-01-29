@@ -1,6 +1,4 @@
-# ScriptFlattener - Project Overview
-
-**Unity Assembly Definition Analysis Toolkit**
+# AsmDEA: Assembly Dependency Enforcement Agency - Project Overview
 
 Last Updated: January 29, 2026
 

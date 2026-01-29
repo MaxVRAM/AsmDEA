@@ -1,6 +1,6 @@
-# ScriptFlattener - Unity Assembly Definition Analysis Toolkit
+# AsmDEA: Assembly Definition Enforcement Agency
 
-A Python toolkit for analyzing Unity Assembly Definition (`.asmdef`) files, detecting circular dependencies, validating namespace compliance, and mapping C# files to assemblies.
+A Python toolkit for analysing Unity Assembly Definition (`.asmdef`) files, detecting circular dependencies, validating namespace compliance, and mapping C# files to assemblies.
 
 ## Features
 
@@ -59,11 +59,11 @@ pip install -r requirements.txt
 
 ## Quick Start (CLI)
 
-**Recommended for most users** - Analyze your Unity project from the command line:
+**Recommended for most users** - Analyse your Unity project from the command line:
 
 ```bash
 # Run complete analysis on your Unity project
-python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
+python asmdef_cli.py analyse --project-path D:/Unity/MyProject/Assets
 
 # The above command will:
 # 1. Map all C# files to their owning assemblies
@@ -74,7 +74,7 @@ python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
 # Use environment variables (create .env from .env.example)
 cp .env.example .env
 # Edit .env with your project path
-python asmdef_cli.py analyze
+python asmdef_cli.py analyse
 
 # Run specific analyses
 python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
@@ -83,7 +83,7 @@ python asmdef_cli.py map-files --project-path ./Assets
 
 # Get help
 python asmdef_cli.py --help
-python asmdef_cli.py analyze --help
+python asmdef_cli.py analyse --help
 ```
 
 ## Quick Start (Python API)
@@ -94,7 +94,7 @@ python asmdef_cli.py analyze --help
 from pathlib import Path
 from common import setup_logging
 from models import AnalysisConfig
-from analyzers import CycleAnalyzer, NamespaceAnalyzer, FileAnalyzer
+from analysers import CycleAnalyser, NamespaceAnalyser, FileAnalyser
 from reporting import CycleReporter, NamespaceReporter, FileAnalysisReporter
 
 # Setup logging
@@ -117,9 +117,9 @@ except SystemExit:
     # Dictionary doesn't exist, need to build it first
     print("Run dictionary builder first")
 
-# Analyze cycles
-cycle_analyzer = CycleAnalyzer(config)
-cycle_report = cycle_analyzer.analyze(asmdef_dict)
+# Analyse cycles
+cycle_analyser = CycleAnalyser(config)
+cycle_report = cycle_analyser.analyse(asmdef_dict)
 
 # Print results
 reporter = CycleReporter(verbose=True)
@@ -148,10 +148,10 @@ ScriptFlattener/
 │   ├── cycle_report.py  # Cycle detection results
 │   └── namespace_analysis.py # Namespace analysis results
 │
-├── analyzers/           # Business logic
-│   ├── cycle_analyzer.py     # Circular dependency detection
-│   ├── namespace_analyzer.py # Namespace compliance checking
-│   └── file_analyzer.py      # File-to-assembly mapping
+├── analysers/           # Business logic
+│   ├── cycle_analyser.py     # Circular dependency detection
+│   ├── namespace_analyser.py # Namespace compliance checking
+│   └── file_analyser.py      # File-to-assembly mapping
 │
 ├── reporting/           # Output formatting
 │   ├── base.py          # Abstract reporter base class
@@ -207,7 +207,7 @@ ScriptFlattener/
 ┌─────────────────────────────────────────────────────────────┐
 │                  Analysis Layer                             │
 │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────┐  │
-│  │CycleAnalyzer    │  │NamespaceAnalyzer │  │FileAnalyzer│ │
+│  │CycleAnalyser    │  │NamespaceAnalyser │  │FileAnalyser│ │
 │  │                 │  │                  │  │           │  │
 │  │- Build graph    │  │- Extract NS      │  │- Scan .cs │  │
 │  │- Detect cycles  │  │- Validate match  │  │- Map files│  │
@@ -240,7 +240,7 @@ ScriptFlattener/
 Flow:
 1. User configures analysis (AnalysisConfig + logging)
 2. Data loaded from Unity project/JSON dictionary
-3. Analyzers process data (cycles, namespaces, files)
+3. Analysers process data (cycles, namespaces, files)
 4. Reporters format and output results (console + JSON)
 ```
 
@@ -251,7 +251,7 @@ Flow:
    - Scan for assembly definitions
    - Build dependency graph
    - Map C# files to assemblies
-   - Analyze namespace compliance
+   - Analyse namespace compliance
    - Detect circular dependencies
 3. **Output**: Console reports and JSON files
 
@@ -292,16 +292,16 @@ Command-line arguments override environment variables.
 
 ### Commands
 
-#### Complete Analysis (`analyze`)
+#### Complete Analysis (`analyse`)
 
 Runs the full analysis pipeline: file mapping → namespace validation → cycle detection.
 
 ```bash
 # Using .env configuration
-python asmdef_cli.py analyze
+python asmdef_cli.py analyse
 
 # Using command-line arguments
-python asmdef_cli.py analyze \
+python asmdef_cli.py analyse \
   --project-path D:/Unity/MyProject/Assets \
   --dict-file ./reports/asmdef_dictionary.json \
   --output-dir ./reports \
@@ -412,7 +412,7 @@ cp .env.example .env
 # Edit .env with your ROOT_PATH
 
 # 2. Run complete analysis
-python asmdef_cli.py analyze
+python asmdef_cli.py analyse
 
 # Reports generated in ./reports/:
 # - asmdef_dictionary.json
@@ -436,7 +436,7 @@ python asmdef_cli.py validate-namespaces --project-path ./Assets
 
 ```bash
 # Exit with error code if cycles detected
-python asmdef_cli.py analyze --project-path ./Assets || exit 1
+python asmdef_cli.py analyse --project-path ./Assets || exit 1
 ```
 
 ### Getting Help
@@ -446,7 +446,7 @@ python asmdef_cli.py analyze --project-path ./Assets || exit 1
 python asmdef_cli.py --help
 
 # Command-specific help
-python asmdef_cli.py analyze --help
+python asmdef_cli.py analyse --help
 python asmdef_cli.py detect-cycles --help
 python asmdef_cli.py validate-namespaces --help
 python asmdef_cli.py map-files --help
@@ -461,7 +461,7 @@ python asmdef_cli.py build-dict --help
 from pathlib import Path
 from common import setup_logging, load_asmdef_dict
 from models import AnalysisConfig
-from analyzers import CycleAnalyzer
+from analysers import CycleAnalyser
 from reporting import CycleReporter
 
 # Setup
@@ -473,9 +473,9 @@ config = AnalysisConfig(
 # Load dictionary
 asmdef_dict = load_asmdef_dict(config.dict_file)
 
-# Analyze
-analyzer = CycleAnalyzer(config)
-report = analyzer.analyze(asmdef_dict)
+# Analyse
+analyser = CycleAnalyser(config)
+report = analyser.analyse(asmdef_dict)
 
 # Report
 reporter = CycleReporter(verbose=True)
@@ -492,7 +492,7 @@ else:
 from pathlib import Path
 from common import setup_logging
 from models import AnalysisConfig
-from analyzers import NamespaceAnalyzer
+from analysers import NamespaceAnalyser
 from reporting import NamespaceReporter
 
 # Setup with child namespace allowance
@@ -502,13 +502,13 @@ config = AnalysisConfig(
     allow_child_namespaces=True
 )
 
-# Analyze
-analyzer = NamespaceAnalyzer(config)
+# Analyse
+analyser = NamespaceAnalyser(config)
 asmdef_dict = {}  # Start with empty dict or load existing
-updated_dict = analyzer.analyze(asmdef_dict)
+updated_dict = analyser.analyse(asmdef_dict)
 
 # Generate report
-report = analyzer.generate_report()
+report = analyser.generate_report()
 reporter = NamespaceReporter(
     verbose=True,
     allow_child_namespaces=True
@@ -523,7 +523,7 @@ reporter.save_json_report(report, Path("reports/namespaces.json"))
 from pathlib import Path
 from common import setup_logging
 from models import AnalysisConfig
-from analyzers import FileAnalyzer
+from analysers import FileAnalyser
 from reporting import FileAnalysisReporter
 
 # Setup
@@ -532,11 +532,11 @@ config = AnalysisConfig(
     root_path=Path("/path/to/unity/Assets")
 )
 
-# Analyze
-analyzer = FileAnalyzer(config)
+# Analyse
+analyser = FileAnalyser(config)
 asmdef_dict = {}  # Or load existing dictionary
-updated_dict = analyzer.analyze(asmdef_dict)
-stats = analyzer.get_stats()
+updated_dict = analyser.analyse(asmdef_dict)
+stats = analyser.get_stats()
 
 # Report
 reporter = FileAnalysisReporter(verbose=True)
@@ -551,7 +551,7 @@ reporter.save_json_report(data, Path("reports/file_mapping.json"))
 from pathlib import Path
 from common import setup_logging, load_asmdef_dict, save_json_report
 from models import AnalysisConfig
-from analyzers import CycleAnalyzer, NamespaceAnalyzer, FileAnalyzer
+from analysers import CycleAnalyser, NamespaceAnalyser, FileAnalyser
 from reporting import (
     CycleReporter,
     NamespaceReporter,
@@ -579,21 +579,21 @@ def main():
     
     # Step 1: Map files to assemblies
     print("\n=== Step 1: File Analysis ===")
-    file_analyzer = FileAnalyzer(config)
-    asmdef_dict = file_analyzer.analyze(asmdef_dict)
+    file_analyser = FileAnalyser(config)
+    asmdef_dict = file_analyser.analyse(asmdef_dict)
     
     file_reporter = FileAnalysisReporter(verbose=True)
     file_data = {
         "asmdef_dict": asmdef_dict,
-        "stats": file_analyzer.get_stats()
+        "stats": file_analyser.get_stats()
     }
     file_reporter.print_console_report(file_data)
     
     # Step 2: Validate namespaces
     print("\n=== Step 2: Namespace Analysis ===")
-    ns_analyzer = NamespaceAnalyzer(config)
-    asmdef_dict = ns_analyzer.analyze(asmdef_dict)
-    ns_report = ns_analyzer.generate_report()
+    ns_analyser = NamespaceAnalyser(config)
+    asmdef_dict = ns_analyser.analyse(asmdef_dict)
+    ns_report = ns_analyser.generate_report()
     
     ns_reporter = NamespaceReporter(
         verbose=True,
@@ -603,8 +603,8 @@ def main():
     
     # Step 3: Detect cycles
     print("\n=== Step 3: Cycle Detection ===")
-    cycle_analyzer = CycleAnalyzer(config)
-    cycle_report = cycle_analyzer.analyze(asmdef_dict)
+    cycle_analyser = CycleAnalyser(config)
+    cycle_report = cycle_analyser.analyse(asmdef_dict)
     
     cycle_reporter = CycleReporter(verbose=True)
     cycle_reporter.print_console_report(cycle_report)
@@ -630,7 +630,7 @@ if __name__ == "__main__":
 
 ### AnalysisConfig
 
-The main configuration class for all analyzers:
+The main configuration class for all analysers:
 
 ```python
 from models import AnalysisConfig
@@ -714,58 +714,58 @@ ns_reporter = NamespaceReporter(
 
 ## API Reference
 
-### Core Analyzers
+### Core Analysers
 
-#### CycleAnalyzer
+#### CycleAnalyser
 
 Detects circular dependencies between assemblies.
 
 ```python
-from analyzers import CycleAnalyzer
+from analysers import CycleAnalyser
 
-analyzer = CycleAnalyzer(config)
-report = analyzer.analyze(asmdef_dict)
-summary = analyzer.get_summary()
+analyser = CycleAnalyser(config)
+report = analyser.analyse(asmdef_dict)
+summary = analyser.get_summary()
 ```
 
 **Methods:**
-- `analyze(asmdef_dict)`: Detect cycles and return CycleReport
+- `analyse(asmdef_dict)`: Detect cycles and return CycleReport
 - `get_summary()`: Get CycleSummary with statistics
 - `detect_cycles()`: Return list of cycle paths
 - `build_dependency_graph()`: Build internal dependency graph
 
-#### NamespaceAnalyzer
+#### NamespaceAnalyser
 
 Validates C# file namespaces against assembly root namespaces.
 
 ```python
-from analyzers import NamespaceAnalyzer
+from analysers import NamespaceAnalyser
 
-analyzer = NamespaceAnalyzer(config)
-updated_dict = analyzer.analyze(asmdef_dict)
-report = analyzer.generate_report()
+analyser = NamespaceAnalyser(config)
+updated_dict = analyser.analyse(asmdef_dict)
+report = analyser.generate_report()
 ```
 
 **Methods:**
-- `analyze(asmdef_dict)`: Analyze all assemblies, return updated dict
-- `analyze_assembly(guid, assembly_data)`: Analyze single assembly
+- `analyse(asmdef_dict)`: Analyse all assemblies, return updated dict
+- `analyse_assembly(guid, assembly_data)`: Analyse single assembly
 - `generate_report()`: Create NamespaceAnalysisReport
 - `extract_namespace(code)`: Extract namespace from C# code
 
-#### FileAnalyzer
+#### FileAnalyser
 
 Maps C# files to their owning assemblies.
 
 ```python
-from analyzers import FileAnalyzer
+from analysers import FileAnalyser
 
-analyzer = FileAnalyzer(config)
-updated_dict = analyzer.analyze(asmdef_dict)
-stats = analyzer.get_stats()
+analyser = FileAnalyser(config)
+updated_dict = analyser.analyse(asmdef_dict)
+stats = analyser.get_stats()
 ```
 
 **Methods:**
-- `analyze(asmdef_dict)`: Scan and map files, return updated dict
+- `analyse(asmdef_dict)`: Scan and map files, return updated dict
 - `get_stats()`: Get file mapping statistics
 - `find_owning_assembly(file_path)`: Find assembly for specific file
 
@@ -777,7 +777,7 @@ Contains cycle detection results.
 
 **Properties:**
 - `total_cycles`: Number of cycles found
-- `total_nodes`: Number of assemblies analyzed
+- `total_nodes`: Number of assemblies analysed
 - `affected_nodes`: Set of assemblies in cycles
 - `cycles`: List of CycleDetail objects
 
@@ -786,7 +786,7 @@ Contains cycle detection results.
 Contains namespace validation results.
 
 **Properties:**
-- `total_assemblies`: Number of assemblies analyzed
+- `total_assemblies`: Number of assemblies analysed
 - `total_files`: Number of C# files checked
 - `total_matched`: Files with matching namespaces
 - `total_mismatched`: Files with incorrect namespaces
@@ -827,30 +827,30 @@ path = validate_directory("/path/to/dir", error_prefix="Unity Assets")
 pytest
 
 # Run with coverage
-pytest --cov=common --cov=models --cov=analyzers --cov-report=term-missing
+pytest --cov=common --cov=models --cov=analysers --cov-report=term-missing
 
 # Run specific test file
-pytest tests/unit/test_analyzers.py -v
+pytest tests/unit/test_analysers.py -v
 ```
 
 ### Code Quality
 
 ```bash
 # Type checking
-mypy common/ models/ analyzers/ --explicit-package-bases
+mypy common/ models/ analysers/ --explicit-package-bases
 
 # Code formatting
-black common/ models/ analyzers/ reporting/
+black common/ models/ analysers/ reporting/
 
 # Linting
-ruff check common/ models/ analyzers/ reporting/ --fix
+ruff check common/ models/ analysers/ reporting/ --fix
 ```
 
 ### Project Structure
 
 - **common/**: Shared utilities and configurations
 - **models/**: Data classes and configurations
-- **analyzers/**: Core analysis logic (business layer)
+- **analysers/**: Core analysis logic (business layer)
 - **reporting/**: Output formatting and presentation
 - **tests/**: Unit and integration tests
 

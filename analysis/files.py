@@ -4,15 +4,15 @@ Analyse .cs files contained in each assembly definition.
 Respects nested asmdef boundaries - scripts belong to the nearest parent asmdef.
 """
 
+import argparse
 import json
 import sys
-import argparse
-from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List, Any, Optional
+from pathlib import Path
+from typing import Any
 
 
-def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
+def load_asmdef_dictionary(filepath: str) -> dict[str, Any]:
     """Load the asmdef dictionary from JSON file.
 
     Args:
@@ -22,14 +22,14 @@ def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
         Dictionary mapping GUIDs to assembly data
     """
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"Error: Failed to load asmdef dictionary: {e}", file=sys.stderr)
         sys.exit(1)
 
 
-def build_path_to_guid_mapping(asmdef_dict: Dict[str, Any], root_path: str) -> Dict[Path, str]:
+def build_path_to_guid_mapping(asmdef_dict: dict[str, Any], root_path: str) -> dict[Path, str]:
     """Build a mapping from folder paths to GUIDs.
 
     Args:
@@ -53,7 +53,7 @@ def build_path_to_guid_mapping(asmdef_dict: Dict[str, Any], root_path: str) -> D
     return path_to_guid
 
 
-def find_owning_assembly(file_path: Path, path_to_guid: Dict[Path, str]) -> Optional[str]:
+def find_owning_assembly(file_path: Path, path_to_guid: dict[Path, str]) -> str | None:
     """Find which assembly owns a given .cs file.
 
     Args:
@@ -87,10 +87,7 @@ def should_ignore_path(path):
     Check if a path should be ignored (Unity ignores folders ending with ~).
     Returns True if any part of the path contains `~`.
     """
-    for part in path.parts:
-        if "~" in part:
-            return True
-    return False
+    return any("~" in part for part in path.parts)
 
 
 def analyse_assembly_files(asmdef_dict, root_path):

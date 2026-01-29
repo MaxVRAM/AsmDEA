@@ -1,15 +1,15 @@
 """Cycle detection analyzer - pure analysis without reporting."""
 
-from typing import Dict, List, Any, Tuple
 from collections import defaultdict
+from typing import Any
 
-from models import CycleReport, CyclePath, CycleDetails, CycleSummary
+from models import CycleDetails, CyclePath, CycleReport, CycleSummary
 
 
 class CycleAnalyzer:
     """Analyzes assembly dependencies to detect cycles."""
 
-    def __init__(self, asmdef_dict: Dict[str, Any]):
+    def __init__(self, asmdef_dict: dict[str, Any]):
         """Initialize cycle analyzer.
 
         Args:
@@ -18,7 +18,7 @@ class CycleAnalyzer:
         self.asmdef_dict = asmdef_dict
         self.graph, self.guid_to_name, self.name_to_guid = self._build_dependency_graph()
 
-    def _build_dependency_graph(self) -> Tuple[Dict[str, List[str]], Dict[str, str], Dict[str, str]]:
+    def _build_dependency_graph(self) -> tuple[dict[str, list[str]], dict[str, str], dict[str, str]]:
         """Build dependency graph from assembly data.
 
         Returns:
@@ -46,17 +46,17 @@ class CycleAnalyzer:
 
         return dict(graph), guid_to_name, name_to_guid
 
-    def detect_cycles(self) -> List[List[str]]:
+    def detect_cycles(self) -> list[list[str]]:
         """Detect all cycles in the dependency graph using DFS.
 
         Returns:
             List of cycles, where each cycle is a list of node names
         """
         # Track node states: 0 = unvisited, 1 = visiting, 2 = visited
-        states = {node: 0 for node in self.graph}
+        states = dict.fromkeys(self.graph, 0)
         cycles = []
 
-        def dfs(node: str, path: List[str]) -> None:
+        def dfs(node: str, path: list[str]) -> None:
             if states[node] == 1:
                 # Found a cycle
                 cycle_start = path.index(node)
@@ -72,9 +72,9 @@ class CycleAnalyzer:
             path.append(node)
 
             # Explore neighbors
-            for neighbor in self.graph.get(node, []):
-                if neighbor in self.graph:
-                    dfs(neighbor, path.copy())
+            for neighbour in self.graph.get(node, []):
+                if neighbour in self.graph:
+                    dfs(neighbour, path.copy())
 
             # Mark as visited
             states[node] = 2

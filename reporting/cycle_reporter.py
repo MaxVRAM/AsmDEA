@@ -1,9 +1,10 @@
 """Reporter for cycle detection results."""
 
-from typing import Dict, Any
+from typing import Any
+
+from models import CycleReport, CycleSummary
 
 from .base import BaseReporter
-from models import CycleReport, CycleSummary
 
 
 class CycleReporter(BaseReporter):
@@ -36,7 +37,7 @@ class CycleReporter(BaseReporter):
         print(f"Summary: {report.total_cycles} cycle(s) detected")
         print(f"{'=' * 60}\n")
 
-    def _print_dependency_tree(self, tree: Dict[str, Any], indent: int = 0) -> None:
+    def _print_dependency_tree(self, tree: dict[str, Any], indent: int = 0) -> None:
         """Recursively print dependency tree.
 
         Args:
@@ -52,7 +53,7 @@ class CycleReporter(BaseReporter):
         for dep in tree.get("dependencies", []):
             self._print_dependency_tree(dep, indent + 2)
 
-    def generate_json_report(self, report: CycleReport) -> Dict[str, Any]:
+    def generate_json_report(self, report: CycleReport) -> dict[str, Any]:
         """Generate JSON-serializable cycle report.
 
         Args:

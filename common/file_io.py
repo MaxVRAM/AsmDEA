@@ -3,19 +3,19 @@
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any
 
 
-def load_asmdef_dict(filepath: Union[Path, str]) -> Dict[str, Any]:
+def load_asmdef_dict(filepath: Path | str) -> dict[str, Any]:
     """
     Load asmdef dictionary from JSON file.
-    
+
     Args:
         filepath: Path to JSON file
-        
+
     Returns:
         Dictionary loaded from JSON
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist
         ValueError: If JSON is malformed
@@ -36,32 +36,29 @@ def load_asmdef_dict(filepath: Union[Path, str]) -> Dict[str, Any]:
 
 
 def save_json_report(
-    data: Dict[str, Any],
-    filepath: Union[Path, str],
-    create_dirs: bool = True,
-    verbose: bool = True
+    data: dict[str, Any], filepath: Path | str, create_dirs: bool = True, verbose: bool = True
 ) -> None:
     """
     Save JSON report with consistent formatting.
-    
+
     Args:
         data: Dictionary to serialize
         filepath: Output file path
         create_dirs: Create parent directories if they don't exist
         verbose: Print confirmation message
-        
+
     Raises:
         OSError: If file cannot be written
     """
     path = Path(filepath)
-    
+
     if create_dirs:
         path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        
+
         if verbose:
             print(f"Report written to {path}")
     except Exception as e:

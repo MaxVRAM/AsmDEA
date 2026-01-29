@@ -4,16 +4,15 @@ Analyse C# file namespaces within assembly definitions.
 Detects namespace mismatches and files without namespace declarations.
 """
 
-import json
-import sys
 import argparse
+import json
 import re
+import sys
 from pathlib import Path
-from collections import defaultdict
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Any
 
 
-def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
+def load_asmdef_dictionary(filepath: str) -> dict[str, Any]:
     """Load the asmdef dictionary from JSON file.
 
     Args:
@@ -30,7 +29,7 @@ def load_asmdef_dictionary(filepath: str) -> Dict[str, Any]:
         sys.exit(1)
 
 
-def extract_namespace_from_cs_file(file_path: Path) -> List[str]:
+def extract_namespace_from_cs_file(file_path: Path) -> list[str]:
     """Extract namespace declarations from a C# file.
 
     Args:
@@ -44,7 +43,7 @@ def extract_namespace_from_cs_file(file_path: Path) -> List[str]:
     namespaces = []
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         # Remove single-line comments to avoid false matches
@@ -118,10 +117,7 @@ def is_namespace_match(file_namespace: str, root_namespace: str) -> bool:
         return True
 
     # Child namespace (e.g., "Foo.Bar.Baz" is child of "Foo.Bar")
-    if file_namespace.startswith(root_namespace + "."):
-        return True
-
-    return False
+    return bool(file_namespace.startswith(root_namespace + "."))
 
 
 def is_child_namespace(namespace, root_namespace):
@@ -186,7 +182,7 @@ def analyse_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=T
     # Filter out metadata entries
     assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
-    for guid, data in assemblies.items():
+    for _guid, data in assemblies.items():
         cs_files = data.get("csFiles", [])
         root_namespace = data.get("rootNamespace", "")
         assembly_path = Path(root_path) / data.get("relativePath", "")
@@ -390,7 +386,7 @@ def main():
     asmdef_dict = load_asmdef_dictionary(args.file)
 
     # Analyse namespaces
-    print(f"Analysing namespaces in C# files...")
+    print("Analysing namespaces in C# files...")
     if not allow_child_namespaces:
         print("(Running in strict mode - child namespaces not allowed)")
 

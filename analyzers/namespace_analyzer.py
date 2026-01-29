@@ -1,16 +1,16 @@
 """Namespace analysis - pure analysis without reporting."""
 
-from typing import Dict, Any, List
-from pathlib import Path
 import re
+from pathlib import Path
+from typing import Any
 
-from models import NamespaceAnalysisReport, AssemblyNamespaceStats
+from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 
 class NamespaceAnalyzer:
     """Analyzes C# file namespaces within assemblies."""
 
-    def __init__(self, asmdef_dict: Dict[str, Any], root_path: Path, allow_child_namespaces: bool = True):
+    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path, allow_child_namespaces: bool = True):
         """Initialize namespace analyzer.
 
         Args:
@@ -23,7 +23,7 @@ class NamespaceAnalyzer:
         self.allow_child_namespaces = allow_child_namespaces
 
     @staticmethod
-    def extract_namespace_from_file(file_path: Path) -> List[str]:
+    def extract_namespace_from_file(file_path: Path) -> list[str]:
         """Extract namespace declarations from a C# file.
 
         Args:
@@ -89,7 +89,7 @@ class NamespaceAnalyzer:
             return False
         return namespace.startswith(root_namespace + ".")
 
-    def analyze_assembly(self, guid: str, assembly_data: Dict[str, Any]) -> AssemblyNamespaceStats:
+    def analyze_assembly(self, guid: str, assembly_data: dict[str, Any]) -> AssemblyNamespaceStats:
         """Analyze namespaces for a single assembly.
 
         Args:

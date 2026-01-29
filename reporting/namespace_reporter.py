@@ -1,9 +1,10 @@
 """Reporter for namespace analysis results."""
 
-from typing import Dict, Any
+from typing import Any
+
+from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 from .base import BaseReporter
-from models import NamespaceAnalysisReport, AssemblyNamespaceStats
 
 
 class NamespaceReporter(BaseReporter):
@@ -83,7 +84,7 @@ class NamespaceReporter(BaseReporter):
 
         print()
 
-    def generate_json_report(self, report: NamespaceAnalysisReport) -> Dict[str, Any]:
+    def generate_json_report(self, report: NamespaceAnalysisReport) -> dict[str, Any]:
         """Generate JSON-serializable namespace report.
 
         Args:

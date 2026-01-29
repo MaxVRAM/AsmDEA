@@ -1,13 +1,13 @@
 # This Python script looks through all the .CS files in a directory and counts the number of lines in each file.
 # It then outputs the total number of lines across all files.
 
-import os
 import argparse
+import os
 
 
 def count_lines_in_cs_files(directory):
     total_lines = 0
-    for root, dirs, files in os.walk(directory):
+    for root, _dirs, files in os.walk(directory):
         for filename in files:
             if filename.endswith(".cs"):
                 with open(os.path.join(root, filename), "r", encoding="utf-8") as file:

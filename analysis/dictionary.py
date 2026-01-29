@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Build a dictionary of Unity Assembly Definition files keyed by GUID."""
 
-import sys
 import json
+import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 
-def extract_guid_from_meta(meta_path: Path) -> Optional[str]:
+def extract_guid_from_meta(meta_path: Path) -> str | None:
     """Extract GUID from .asmdef.meta file without external dependencies.
 
     Args:
@@ -17,7 +17,7 @@ def extract_guid_from_meta(meta_path: Path) -> Optional[str]:
         GUID string prefixed with "GUID:" or None if extraction fails
     """
     try:
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("guid:"):
@@ -31,7 +31,7 @@ def extract_guid_from_meta(meta_path: Path) -> Optional[str]:
         return None
 
 
-def load_asmdef_json(asmdef_path: Path) -> Optional[Dict[str, Any]]:
+def load_asmdef_json(asmdef_path: Path) -> dict[str, Any] | None:
     """Load and parse .asmdef JSON file.
 
     Args:
@@ -41,7 +41,7 @@ def load_asmdef_json(asmdef_path: Path) -> Optional[Dict[str, Any]]:
         Dictionary with assembly definition data or None if loading fails
     """
     try:
-        with open(asmdef_path, "r", encoding="utf-8") as f:
+        with open(asmdef_path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         print(f"Warning: Invalid JSON in '{asmdef_path}': {e}", file=sys.stderr)
@@ -51,7 +51,7 @@ def load_asmdef_json(asmdef_path: Path) -> Optional[Dict[str, Any]]:
         return None
 
 
-def build_asmdef_dictionary(root_path: str) -> Optional[Dict[str, Dict[str, Any]]]:
+def build_asmdef_dictionary(root_path: str) -> dict[str, dict[str, Any]] | None:
     """Build dictionary of assembly definitions keyed by GUID.
 
     Args:

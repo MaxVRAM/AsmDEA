@@ -1,14 +1,14 @@
 """File ownership analyzer - assigns C# files to assemblies."""
 
-from typing import Dict, Any, Optional
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+from typing import Any
 
 
 class FileAnalyzer:
     """Analyzes C# file ownership by assemblies."""
 
-    def __init__(self, asmdef_dict: Dict[str, Any], root_path: Path):
+    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path):
         """Initialize file analyzer.
 
         Args:
@@ -19,7 +19,7 @@ class FileAnalyzer:
         self.root_path = Path(root_path).resolve()
         self.path_to_guid = self._build_path_to_guid_mapping()
 
-    def _build_path_to_guid_mapping(self) -> Dict[Path, str]:
+    def _build_path_to_guid_mapping(self) -> dict[Path, str]:
         """Build mapping from folder paths to assembly GUIDs.
 
         Returns:
@@ -38,7 +38,7 @@ class FileAnalyzer:
 
         return path_to_guid
 
-    def find_owning_assembly(self, file_path: Path) -> Optional[str]:
+    def find_owning_assembly(self, file_path: Path) -> str | None:
         """Find which assembly owns a given C# file.
 
         Args:
@@ -71,7 +71,7 @@ class FileAnalyzer:
         """
         return any("~" in part for part in path.parts)
 
-    def analyze(self) -> Dict[str, Any]:
+    def analyze(self) -> dict[str, Any]:
         """Perform complete file ownership analysis.
 
         Returns:

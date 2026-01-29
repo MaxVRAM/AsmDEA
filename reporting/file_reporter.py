@@ -1,6 +1,6 @@
 """Reporter for file analysis results."""
 
-from typing import Dict, Any
+from typing import Any
 
 from .base import BaseReporter
 
@@ -8,7 +8,7 @@ from .base import BaseReporter
 class FileAnalysisReporter(BaseReporter):
     """Reporter for C# file ownership analysis results."""
 
-    def print_console_report(self, data: Dict[str, Any]) -> None:
+    def print_console_report(self, data: dict[str, Any]) -> None:
         """Print formatted file analysis report to console.
 
         Args:
@@ -45,7 +45,7 @@ class FileAnalysisReporter(BaseReporter):
 
         print()
 
-    def generate_json_report(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_json_report(self, data: dict[str, Any]) -> dict[str, Any]:
         """Generate JSON-serializable file analysis report.
 
         Args:
@@ -76,7 +76,7 @@ class FileAnalysisReporter(BaseReporter):
             },
         }
 
-    def print_detailed_report(self, data: Dict[str, Any], max_files_per_assembly: int = 10) -> None:
+    def print_detailed_report(self, data: dict[str, Any], max_files_per_assembly: int = 10) -> None:
         """Print detailed report showing individual files.
 
         Args:
@@ -99,7 +99,7 @@ class FileAnalysisReporter(BaseReporter):
 
             print(f"\n{name} ({len(cs_files)} files):")
 
-            for i, file_path in enumerate(cs_files[:max_files_per_assembly]):
+            for _i, file_path in enumerate(cs_files[:max_files_per_assembly]):
                 print(f"  - {file_path}")
 
             if len(cs_files) > max_files_per_assembly:

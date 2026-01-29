@@ -3,7 +3,6 @@
 from enum import Enum
 from pathlib import Path
 
-
 # File extensions
 ASMDEF_EXTENSION = ".asmdef"
 CS_EXTENSION = ".cs"

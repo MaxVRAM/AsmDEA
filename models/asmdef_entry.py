@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 
 @dataclass
@@ -30,21 +30,21 @@ class AsmdefEntry:
     guid: str
     name: str
     file_path: Path
-    references: List[str] = field(default_factory=list)
-    root_namespace: Optional[str] = None
-    include_platforms: List[str] = field(default_factory=list)
-    exclude_platforms: List[str] = field(default_factory=list)
+    references: list[str] = field(default_factory=list)
+    root_namespace: str | None = None
+    include_platforms: list[str] = field(default_factory=list)
+    exclude_platforms: list[str] = field(default_factory=list)
     allow_unsafe_code: bool = False
     override_references: bool = False
-    precompiled_references: List[str] = field(default_factory=list)
+    precompiled_references: list[str] = field(default_factory=list)
     auto_referenced: bool = True
-    define_constraints: List[str] = field(default_factory=list)
-    version_defines: List[Dict[str, Any]] = field(default_factory=list)
+    define_constraints: list[str] = field(default_factory=list)
+    version_defines: list[dict[str, Any]] = field(default_factory=list)
     no_engine_references: bool = False
-    raw_data: Dict[str, Any] = field(default_factory=dict)
+    raw_data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, guid: str, data: Dict[str, Any], file_path: Path) -> "AsmdefEntry":
+    def from_dict(cls, guid: str, data: dict[str, Any], file_path: Path) -> "AsmdefEntry":
         """Create AsmdefEntry from dictionary data.
 
         Args:
@@ -73,7 +73,7 @@ class AsmdefEntry:
             raw_data=data,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert AsmdefEntry back to dictionary format.
 
         Returns:

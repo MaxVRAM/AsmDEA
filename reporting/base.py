@@ -1,9 +1,9 @@
 """Base reporter class for consistent reporting interface."""
 
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict
-import json
+from typing import Any
 
 
 class BaseReporter(ABC):
@@ -30,7 +30,7 @@ class BaseReporter(ABC):
         pass
 
     @abstractmethod
-    def generate_json_report(self, data: Any) -> Dict[str, Any]:
+    def generate_json_report(self, data: Any) -> dict[str, Any]:
         """Generate JSON-serializable report structure.
 
         Args:

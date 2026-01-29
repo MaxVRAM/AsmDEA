@@ -3,10 +3,9 @@ Utility Python script to copy all .CS files from the source directory
 to the destination directory, flattening the directory structure.
 """
 
+import argparse
 import os
 import shutil
-import argparse
-
 
 SRC_DIR = "source"
 DEST_DIR = "flattened"

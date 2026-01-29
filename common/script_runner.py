@@ -1,9 +1,8 @@
 """Subprocess execution utilities for running analysis scripts."""
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from typing import List
 
 
 class ScriptRunner:
@@ -19,7 +18,7 @@ class ScriptRunner:
         self.script_dir = Path(script_dir)
 
     def run(
-        self, script_name: str, args: List[str], step_description: str, check: bool = True
+        self, script_name: str, args: list[str], step_description: str, check: bool = True
     ) -> subprocess.CompletedProcess:
         """
         Execute a Python script as subprocess.

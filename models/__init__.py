@@ -1,18 +1,18 @@
 """Data models for assembly definitions and analysis results."""
 
 from .asmdef_entry import AsmdefEntry
-from .config import AnalysisConfig, FlattenerConfig, CounterConfig
-from .namespace_analysis import (
-    NamespaceMatch,
-    AssemblyNamespaceStats,
-    NamespaceAnalysisReport,
-)
+from .config import AnalysisConfig, CounterConfig, FlattenerConfig
 from .cycle_report import (
-    CyclePath,
-    DependencyNode,
     CycleDetails,
+    CyclePath,
     CycleReport,
     CycleSummary,
+    DependencyNode,
+)
+from .namespace_analysis import (
+    AssemblyNamespaceStats,
+    NamespaceAnalysisReport,
+    NamespaceMatch,
 )
 
 __all__ = [

@@ -1,11 +1,11 @@
 """Utilities for working with asmdef dictionary structures."""
 
-from typing import Any, Dict
+from typing import Any
 
 from .constants import METADATA_KEY
 
 
-def filter_assemblies(asmdef_dict: Dict[str, Any]) -> Dict[str, Any]:
+def filter_assemblies(asmdef_dict: dict[str, Any]) -> dict[str, Any]:
     """
     Filter out metadata entries from asmdef dictionary.
 
@@ -20,7 +20,7 @@ def filter_assemblies(asmdef_dict: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
 
-def get_metadata(asmdef_dict: Dict[str, Any]) -> Dict[str, Any]:
+def get_metadata(asmdef_dict: dict[str, Any]) -> dict[str, Any]:
     """
     Get metadata from asmdef dictionary.
 
@@ -33,7 +33,7 @@ def get_metadata(asmdef_dict: Dict[str, Any]) -> Dict[str, Any]:
     return asmdef_dict.get(METADATA_KEY, {})
 
 
-def set_metadata(asmdef_dict: Dict[str, Any], key: str, value: Any) -> None:
+def set_metadata(asmdef_dict: dict[str, Any], key: str, value: Any) -> None:
     """
     Set metadata value in asmdef dictionary.
 

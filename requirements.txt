@@ -5,3 +5,11 @@ python-dotenv>=1.0.0
 
 # Type checking and static analysis (Phase 3+)
 mypy>=1.8.0
+
+# Testing framework (Phase 5)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code formatting and linting (Phase 5)
+black>=23.0.0
+ruff>=0.1.0

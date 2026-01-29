@@ -1,7 +1,7 @@
 """Data models for cycle detection and reporting."""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -14,7 +14,7 @@ class CyclePath:
         formatted_path: Human-readable representation of the cycle
     """
 
-    nodes: List[str]
+    nodes: list[str]
 
     @property
     def length(self) -> int:
@@ -44,10 +44,10 @@ class DependencyNode:
 
     name: str
     is_in_cycle: bool = False
-    dependencies: List["DependencyNode"] = field(default_factory=list)
+    dependencies: list["DependencyNode"] = field(default_factory=list)
     depth: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "name": self.name,
@@ -70,9 +70,9 @@ class CycleDetails:
 
     cycle_id: int
     cycle_path: CyclePath
-    affected_assemblies: List[str] = field(default_factory=list)
-    dependency_tree: Optional[Dict[str, Any]] = None
-    root_node: Optional[str] = None
+    affected_assemblies: list[str] = field(default_factory=list)
+    dependency_tree: dict[str, Any] | None = None
+    root_node: str | None = None
 
     @property
     def cycle_length(self) -> int:
@@ -94,13 +94,13 @@ class CycleReport:
         name_to_guid: Mapping from assembly name to GUID
     """
 
-    cycles: List[CycleDetails] = field(default_factory=list)
+    cycles: list[CycleDetails] = field(default_factory=list)
     total_cycles: int = 0
     total_nodes: int = 0
-    affected_nodes: List[str] = field(default_factory=list)
-    graph: Dict[str, List[str]] = field(default_factory=dict)
-    guid_to_name: Dict[str, str] = field(default_factory=dict)
-    name_to_guid: Dict[str, str] = field(default_factory=dict)
+    affected_nodes: list[str] = field(default_factory=list)
+    graph: dict[str, list[str]] = field(default_factory=dict)
+    guid_to_name: dict[str, str] = field(default_factory=dict)
+    name_to_guid: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         """Calculate derived fields."""
@@ -108,7 +108,7 @@ class CycleReport:
         if self.graph:
             self.total_nodes = len(self.graph)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "totalCycles": self.total_cycles,

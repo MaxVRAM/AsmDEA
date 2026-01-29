@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict
 
 
 @dataclass
@@ -19,7 +18,7 @@ class NamespaceMatch:
     """
 
     file_path: Path
-    namespaces: List[str]
+    namespaces: list[str]
     expected_namespace: str
     is_match: bool = False
     is_child: bool = False
@@ -54,11 +53,11 @@ class AssemblyNamespaceStats:
     child_namespace_files: int = 0
     unmatched_files: int = 0
     no_namespace_files: int = 0
-    matched_file_paths: List[Path] = field(default_factory=list)
-    child_namespace_paths: List[Path] = field(default_factory=list)
-    unmatched_file_paths: List[Path] = field(default_factory=list)
-    no_namespace_paths: List[Path] = field(default_factory=list)
-    namespace_mismatches: Dict[str, List[str]] = field(default_factory=dict)
+    matched_file_paths: list[Path] = field(default_factory=list)
+    child_namespace_paths: list[Path] = field(default_factory=list)
+    unmatched_file_paths: list[Path] = field(default_factory=list)
+    no_namespace_paths: list[Path] = field(default_factory=list)
+    namespace_mismatches: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def match_percentage(self) -> float:
@@ -89,7 +88,7 @@ class NamespaceAnalysisReport:
         allow_child_namespaces: Whether child namespaces were allowed
     """
 
-    assembly_stats: Dict[str, AssemblyNamespaceStats] = field(default_factory=dict)
+    assembly_stats: dict[str, AssemblyNamespaceStats] = field(default_factory=dict)
     total_assemblies: int = 0
     total_files: int = 0
     total_matched: int = 0
@@ -104,7 +103,7 @@ class NamespaceAnalysisReport:
             return 0.0
         return (self.total_matched / self.total_files) * 100
 
-    def get_problem_assemblies(self) -> List[AssemblyNamespaceStats]:
+    def get_problem_assemblies(self) -> list[AssemblyNamespaceStats]:
         """Get assemblies that have namespace problems.
 
         Returns:

@@ -1,1 +1,1 @@
-"""Test package for ScriptFlattener."""
+"""Test package for AsmDEA."""

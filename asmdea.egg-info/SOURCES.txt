@@ -1,4 +1,5 @@
 README.md
+asmdea.py
 pyproject.toml
 analysis/__init__.py
 analysis/cycles.py
@@ -9,6 +10,12 @@ analyzers/__init__.py
 analyzers/cycle_analyzer.py
 analyzers/file_analyzer.py
 analyzers/namespace_analyzer.py
+asmdea.egg-info/PKG-INFO
+asmdea.egg-info/SOURCES.txt
+asmdea.egg-info/dependency_links.txt
+asmdea.egg-info/entry_points.txt
+asmdea.egg-info/requires.txt
+asmdea.egg-info/top_level.txt
 common/__init__.py
 common/asmdef_dict.py
 common/constants.py
@@ -27,12 +34,6 @@ reporting/base.py
 reporting/cycle_reporter.py
 reporting/file_reporter.py
 reporting/namespace_reporter.py
-scriptflattener.egg-info/PKG-INFO
-scriptflattener.egg-info/SOURCES.txt
-scriptflattener.egg-info/dependency_links.txt
-scriptflattener.egg-info/entry_points.txt
-scriptflattener.egg-info/requires.txt
-scriptflattener.egg-info/top_level.txt
 utilities/__init__.py
 utilities/code_line_counter.py
 utilities/counter.py

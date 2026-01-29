@@ -36,7 +36,7 @@ A Python toolkit for analysing Unity Assembly Definition (`.asmdef`) files, dete
 
 ```bash
 git clone <repository-url>
-cd ScriptFlattener
+cd AsmDEA
 ```
 
 1. Create and activate virtual environment:
@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 ```bash
 # Run complete analysis on your Unity project
-python asmdef_cli.py analyse --project-path D:/Unity/MyProject/Assets
+asmdea analyse --project-path D:/Unity/MyProject/Assets
 
 # The above command will:
 # 1. Map all C# files to their owning assemblies
@@ -74,16 +74,16 @@ python asmdef_cli.py analyse --project-path D:/Unity/MyProject/Assets
 # Use environment variables (create .env from .env.example)
 cp .env.example .env
 # Edit .env with your project path
-python asmdef_cli.py analyse
+asmdea analyse
 
 # Run specific analyses
-python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
-python asmdef_cli.py validate-namespaces --project-path ./Assets
-python asmdef_cli.py map-files --project-path ./Assets
+asmdea detect-cycles --dict-file ./reports/asmdef_dictionary.json
+asmdea validate-namespaces --project-path ./Assets
+asmdea map-files --project-path ./Assets
 
 # Get help
-python asmdef_cli.py --help
-python asmdef_cli.py analyse --help
+asmdea --help
+asmdea analyse --help
 ```
 
 ## Quick Start (Python API)
@@ -132,7 +132,7 @@ reporter.save_json_report(cycle_report, config.output_dir / "cycles.json")
 ### Module Structure
 
 ```
-ScriptFlattener/
+AsmDEA/
 ├── common/              # Shared utilities
 │   ├── constants.py     # Project constants
 │   ├── exceptions.py    # Custom exceptions
@@ -168,7 +168,7 @@ ScriptFlattener/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     ScriptFlattener                         │
+│                        AsmDEA                               │
 │                  Unity Asmdef Analysis                      │
 └─────────────────────────────────────────────────────────────┘
 
@@ -257,7 +257,7 @@ Flow:
 
 ## Command-Line Usage
 
-The `asmdef_cli.py` script provides a unified command-line interface for all analysis operations. It supports configuration via command-line arguments or a `.env` file.
+The `asmdea` command provides a unified command-line interface for all analysis operations. It supports configuration via command-line arguments or a `.env` file.
 
 ### Setup Environment Variables (Optional)
 
@@ -298,17 +298,17 @@ Runs the full analysis pipeline: file mapping → namespace validation → cycle
 
 ```bash
 # Using .env configuration
-python asmdef_cli.py analyse
+asmdea analyse
 
 # Using command-line arguments
-python asmdef_cli.py analyse \
+asmdea analyse \
   --project-path D:/Unity/MyProject/Assets \
   --dict-file ./reports/asmdef_dictionary.json \
   --output-dir ./reports \
   --verbose
 
 # Short form (alias)
-python asmdef_cli.py all --project-path ./Assets
+asmdea all --project-path ./Assets
 ```
 
 **Options:**
@@ -332,7 +332,7 @@ Detect circular dependencies only (requires existing dictionary).
 
 ```bash
 # Using existing dictionary
-python asmdef_cli.py detect-cycles \
+asmdea detect-cycles \
   --dict-file ./reports/asmdef_dictionary.json \
   --output-dir ./reports \
   --depth 10 \
@@ -351,13 +351,13 @@ Check namespace compliance only.
 
 ```bash
 # Validate namespaces in project
-python asmdef_cli.py validate-namespaces \
+asmdea validate-namespaces \
   --project-path D:/Unity/MyProject/Assets \
   --allow-child-namespaces \
   --verbose
 
 # Update dictionary with namespace analysis
-python asmdef_cli.py validate-namespaces \
+asmdea validate-namespaces \
   --project-path ./Assets \
   --dict-file ./reports/asmdef_dictionary.json
 ```
@@ -374,7 +374,7 @@ Map C# files to their owning assemblies.
 
 ```bash
 # Map files and create/update dictionary
-python asmdef_cli.py map-files \
+asmdea map-files \
   --project-path D:/Unity/MyProject/Assets \
   --dict-file ./reports/asmdef_dictionary.json \
   --output-dir ./reports
@@ -391,7 +391,7 @@ Create initial assembly dictionary from `.asmdef` files.
 
 ```bash
 # Create dictionary from Unity project
-python asmdef_cli.py build-dict \
+asmdea build-dict \
   --project-path D:/Unity/MyProject/Assets \
   --dict-file ./reports/asmdef_dictionary.json \
   --verbose
@@ -412,7 +412,7 @@ cp .env.example .env
 # Edit .env with your ROOT_PATH
 
 # 2. Run complete analysis
-python asmdef_cli.py analyse
+asmdea analyse
 
 # Reports generated in ./reports/:
 # - asmdef_dictionary.json
@@ -426,28 +426,28 @@ python asmdef_cli.py analyse
 
 ```bash
 # Quick check for new circular dependencies
-python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
+asmdea detect-cycles --dict-file ./reports/asmdef_dictionary.json
 
 # Validate namespaces after refactoring
-python asmdef_cli.py validate-namespaces --project-path ./Assets
+asmdea validate-namespaces --project-path ./Assets
 ```
 
 **CI/CD integration:**
 
 ```bash
 # Exit with error code if cycles detected
-python asmdef_cli.py analyse --project-path ./Assets || exit 1
+asmdea analyse --project-path ./Assets || exit 1
 ```
 
 ### Getting Help
 
 ```bash
 # General help
-python asmdef_cli.py --help
+asmdea --help
 
 # Command-specific help
-python asmdef_cli.py analyse --help
-python asmdef_cli.py detect-cycles --help
+asmdea analyse --help
+asmdea detect-cycles --help
 python asmdef_cli.py validate-namespaces --help
 python asmdef_cli.py map-files --help
 python asmdef_cli.py build-dict --help

@@ -12,9 +12,9 @@ Commands:
     validate-namespaces - Validate namespace compliance only
 
 Usage:
-    python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
-    python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
-    python asmdef_cli.py --help
+    python asmdea.py analyze --project-path D:/Unity/MyProject/Assets
+    asmdea detect-cycles --dict-file ./reports/asmdef_dictionary.json
+    asmdea --help
 """
 
 import argparse
@@ -45,14 +45,14 @@ def get_env_or_default(key: str, default: str) -> str:
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser with all commands."""
     parser = argparse.ArgumentParser(
-        prog="asmdef_cli",
-        description="Unity Assembly Definition Analysis Toolkit",
+        prog="asmdea",
+        description="AsmDEA - Assembly Dependency Enforcement Agency",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
-  python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
-  python asmdef_cli.py validate-namespaces --project-path ./Assets
+  asmdea analyze --project-path D:/Unity/MyProject/Assets
+  asmdea detect-cycles --dict-file ./reports/asmdef_dictionary.json
+  asmdea validate-namespaces --project-path ./Assets
 
 Environment Variables (from .env file):
   ROOT_PATH    - Default project path

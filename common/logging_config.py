@@ -1,4 +1,4 @@
-"""Centralized logging configuration for the ScriptFlattener project.
+"""Centralized logging configuration for the AsmDEA project.
 
 This module provides a consistent logging setup across all modules with:
 - Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)

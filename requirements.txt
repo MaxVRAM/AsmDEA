@@ -1,4 +1,4 @@
-# Python dependencies for ScriptFlattener project
+# Python dependencies for AsmDEA project
 
 # Required for .env file configuration support
 python-dotenv>=1.0.0

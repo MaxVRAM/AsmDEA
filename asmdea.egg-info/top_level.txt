@@ -1,5 +1,6 @@
 analysis
 analyzers
+asmdea
 common
 models
 reporting

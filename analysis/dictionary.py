@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-import sys
+"""Build a dictionary of Unity Assembly Definition files keyed by GUID."""
+
 import json
+import sys
 from pathlib import Path
+from typing import Any
 
 
-def extract_guid_from_meta(meta_path):
-    """Extract GUID from .asmdef.meta file without external dependencies."""
+def extract_guid_from_meta(meta_path: Path) -> str | None:
+    """Extract GUID from .asmdef.meta file without external dependencies.
+
+    Args:
+        meta_path: Path to the .meta file
+
+    Returns:
+        GUID string prefixed with "GUID:" or None if extraction fails
+    """
     try:
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("guid:"):
@@ -21,10 +31,17 @@ def extract_guid_from_meta(meta_path):
         return None
 
 
-def load_asmdef_json(asmdef_path):
-    """Load and parse .asmdef JSON file."""
+def load_asmdef_json(asmdef_path: Path) -> dict[str, Any] | None:
+    """Load and parse .asmdef JSON file.
+
+    Args:
+        asmdef_path: Path to the .asmdef file
+
+    Returns:
+        Dictionary with assembly definition data or None if loading fails
+    """
     try:
-        with open(asmdef_path, "r", encoding="utf-8") as f:
+        with open(asmdef_path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         print(f"Warning: Invalid JSON in '{asmdef_path}': {e}", file=sys.stderr)
@@ -34,8 +51,15 @@ def load_asmdef_json(asmdef_path):
         return None
 
 
-def build_asmdef_dictionary(root_path):
-    """Build dictionary of assembly definitions keyed by GUID."""
+def build_asmdef_dictionary(root_path: str) -> dict[str, dict[str, Any]] | None:
+    """Build dictionary of assembly definitions keyed by GUID.
+
+    Args:
+        root_path: Root directory to search for .asmdef files
+
+    Returns:
+        Dictionary mapping GUIDs to assembly definition data, or None on error
+    """
     root = Path(root_path).resolve()
 
     if not root.exists():
@@ -85,7 +109,8 @@ def build_asmdef_dictionary(root_path):
     return asmdef_dict
 
 
-def main():
+def main() -> None:
+    """Main entry point for dictionary builder script."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: python asmdef_dictionary.py <root_path> [output_file]", file=sys.stderr)
         sys.exit(1)

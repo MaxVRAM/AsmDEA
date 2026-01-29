@@ -1,23 +1,42 @@
 #!/usr/bin/env python3
+"""Detect and report cyclic dependencies in Unity Assembly Definitions."""
+
+import argparse
 import json
 import sys
-import argparse
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 
-def load_asmdef_dictionary(filepath):
-    """Load the asmdef dictionary from JSON file."""
+def load_asmdef_dictionary(filepath: str) -> dict[str, Any]:
+    """Load the asmdef dictionary from a JSON file.
+
+    Args:
+        filepath: Path to the JSON dictionary file
+
+    Returns:
+        Dictionary mapping GUIDs to assembly data
+    """
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"Error: Failed to load asmdef dictionary: {e}", file=sys.stderr)
         sys.exit(1)
 
 
-def build_dependency_graph(asmdef_dict):
-    """Build a dependency graph from the asmdef dictionary."""
+def build_dependency_graph(
+    asmdef_dict: dict[str, Any],
+) -> tuple[defaultdict[str, list[str]], dict[str, str], dict[str, str]]:
+    """Build a dependency graph from the asmdef dictionary.
+
+    Args:
+        asmdef_dict: Dictionary of assembly definitions keyed by GUID
+
+    Returns:
+        Tuple of (graph, guid_to_name, name_to_guid) mappings
+    """
     # Filter out metadata entries (those starting with underscore)
     assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
@@ -37,20 +56,23 @@ def build_dependency_graph(asmdef_dict):
 
         for ref in references:
             # Convert GUID references to names if possible
-            if ref in guid_to_name:
-                ref_name = guid_to_name[ref]
-            else:
-                ref_name = ref
-
+            ref_name = guid_to_name.get(ref, ref)
             graph[assembly_name].append(ref_name)
 
     return graph, guid_to_name, name_to_guid
 
 
-def detect_cycles(graph):
-    """Detect cycles in the dependency graph using DFS."""
+def detect_cycles(graph: dict[str, list[str]]) -> list[list[str]]:
+    """Detect cycles in the dependency graph using DFS.
+
+    Args:
+        graph: Dependency graph as adjacency list
+
+    Returns:
+        List of cycles, where each cycle is a list of node names
+    """
     # Track node states: 0 = unvisited, 1 = visiting, 2 = visited
-    states = {node: 0 for node in graph}
+    states = dict.fromkeys(graph, 0)
     cycles = []
 
     def dfs(node, path):
@@ -69,9 +91,9 @@ def detect_cycles(graph):
         path.append(node)
 
         # Explore neighbors
-        for neighbor in graph.get(node, []):
-            if neighbor in graph:  # Only follow if the neighbor exists in our graph
-                dfs(neighbor, path.copy())
+        for neighbour in graph.get(node, []):
+            if neighbour in graph:  # Only follow if the neighbour exists in our graph
+                dfs(neighbour, path.copy())
 
         # Mark as visited
         states[node] = 2
@@ -268,10 +290,7 @@ def main():
     report_data["metadata"] = {"total_assemblies_analysed": len(graph)}
 
     # Determine output paths
-    if args.output:
-        output_path = Path(args.output)
-    else:
-        output_path = Path("./output/cycle_report.json")
+    output_path = Path(args.output) if args.output else Path("./output/cycle_report.json")
 
     # Create summary output path based on main output
     summary_output_path = output_path.parent / f"{output_path.stem}_summary{output_path.suffix}"

@@ -4,16 +4,23 @@ Analyse C# file namespaces within assembly definitions.
 Detects namespace mismatches and files without namespace declarations.
 """
 
-import json
-import sys
 import argparse
+import json
 import re
+import sys
 from pathlib import Path
-from collections import defaultdict
+from typing import Any
 
 
-def load_asmdef_dictionary(filepath):
-    """Load the asmdef dictionary from JSON file."""
+def load_asmdef_dictionary(filepath: str) -> dict[str, Any]:
+    """Load the asmdef dictionary from JSON file.
+
+    Args:
+        filepath: Path to the JSON dictionary file
+
+    Returns:
+        Dictionary mapping GUIDs to assembly data
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -22,16 +29,21 @@ def load_asmdef_dictionary(filepath):
         sys.exit(1)
 
 
-def extract_namespace_from_cs_file(file_path):
-    """
-    Extract namespace declarations from a C# file.
-    Returns a list of namespace strings found in the file.
+def extract_namespace_from_cs_file(file_path: Path) -> list[str]:
+    """Extract namespace declarations from a C# file.
+
+    Args:
+        file_path: Path to the C# file
+
+    Returns:
+        List of namespace strings found in the file
+
     Handles both traditional and file-scoped namespace declarations.
     """
     namespaces = []
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         # Remove single-line comments to avoid false matches
@@ -77,7 +89,16 @@ def extract_namespace_from_cs_file(file_path):
     return namespaces
 
 
-def is_namespace_match(file_namespace, root_namespace):
+def is_namespace_match(file_namespace: str, root_namespace: str) -> bool:
+    """Check if file namespace matches expected root namespace.
+
+    Args:
+        file_namespace: Namespace declared in the file
+        root_namespace: Expected root namespace from assembly
+
+    Returns:
+        True if namespaces match exactly
+    """
     """
     Check if a file's namespace matches or is a child of the root namespace.
     Returns True if it matches, False otherwise.
@@ -96,10 +117,7 @@ def is_namespace_match(file_namespace, root_namespace):
         return True
 
     # Child namespace (e.g., "Foo.Bar.Baz" is child of "Foo.Bar")
-    if file_namespace.startswith(root_namespace + "."):
-        return True
-
-    return False
+    return bool(file_namespace.startswith(root_namespace + "."))
 
 
 def is_child_namespace(namespace, root_namespace):
@@ -164,7 +182,7 @@ def analyse_assembly_namespaces(asmdef_dict, root_path, allow_child_namespaces=T
     # Filter out metadata entries
     assemblies = {k: v for k, v in asmdef_dict.items() if not k.startswith("_")}
 
-    for guid, data in assemblies.items():
+    for _guid, data in assemblies.items():
         cs_files = data.get("csFiles", [])
         root_namespace = data.get("rootNamespace", "")
         assembly_path = Path(root_path) / data.get("relativePath", "")
@@ -368,7 +386,7 @@ def main():
     asmdef_dict = load_asmdef_dictionary(args.file)
 
     # Analyse namespaces
-    print(f"Analysing namespaces in C# files...")
+    print("Analysing namespaces in C# files...")
     if not allow_child_namespaces:
         print("(Running in strict mode - child namespaces not allowed)")
 

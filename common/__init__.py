@@ -26,6 +26,7 @@ from .file_io import load_asmdef_dict, save_json_report
 from .console import configure_console, get_console, reset_console
 from .logging_config import get_logger, setup_logging
 from .path_utils import validate_directory
+from .dictionary import build_asmdef_dictionary
 
 __all__ = [
     "ASMDEF_EXTENSION",
@@ -56,4 +57,5 @@ __all__ = [
     "get_console",
     "configure_console",
     "reset_console",
+    "build_asmdef_dictionary",
 ]

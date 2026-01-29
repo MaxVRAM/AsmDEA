@@ -31,7 +31,7 @@ try:
 except ImportError:
     pass
 
-from analysis.dictionary import build_asmdef_dictionary
+from common.dictionary import build_asmdef_dictionary
 from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
 from common import configure_console, get_logger, load_asmdef_dict, save_json_report, setup_logging
 from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter

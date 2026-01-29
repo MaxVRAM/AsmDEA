@@ -7,6 +7,7 @@ Key classes:
     - NamespaceReporter: Formats and outputs namespace analysis results
 
 Features:
+    - Rich console output with panels, tables, and styled text
     - Summary statistics (total files, match rates, compliance percentages)
     - Per-assembly breakdown of matched/mismatched/missing namespaces
     - Optional verbose mode showing specific file paths
@@ -23,27 +24,39 @@ Usage:
     reporter.print_summary(analysis_report)
 """
 
-from typing import Any
+from __future__ import annotations
 
-from common import get_logger
+from typing import TYPE_CHECKING, Any
+
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.table import Table
+
 from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 from .base import BaseReporter
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from rich.console import Console
 
 
 class NamespaceReporter(BaseReporter):
     """Reporter for namespace analysis results."""
 
-    def __init__(self, verbose: bool = False, allow_child_namespaces: bool = True):
+    def __init__(
+        self,
+        verbose: bool = False,
+        allow_child_namespaces: bool = True,
+        console: Console | None = None,
+    ):
         """Initialize namespace reporter.
 
         Args:
             verbose: Enable verbose output
             allow_child_namespaces: Whether child namespaces are considered valid
+            console: Rich Console instance (uses shared instance if not provided)
         """
-        super().__init__(verbose)
+        super().__init__(verbose, console)
         self.allow_child_namespaces = allow_child_namespaces
 
     def print_console_report(self, report: NamespaceAnalysisReport) -> None:
@@ -52,63 +65,112 @@ class NamespaceReporter(BaseReporter):
         Args:
             report: NamespaceAnalysisReport with analysis results
         """
-        logger.info("\n%s", "=" * 70)
-        logger.info("NAMESPACE ANALYSIS REPORT")
-        logger.info("%s\n", "=" * 70)
+        console = self.console
 
-        logger.info("Assemblies Analyzed: %d", report.total_assemblies)
-        logger.info("Total Files Analyzed: %d", report.total_files)
-        logger.info("Files with Matching Namespaces: %d", report.total_matched)
-        logger.info("Files with Mismatched Namespaces: %d", report.total_mismatched)
-        logger.info("Files without Namespaces: %d", report.total_no_namespace)
-        logger.info("Overall Match Rate: %.1f%%\n", report.overall_match_percentage)
+        # Determine status color based on match rate
+        if report.overall_match_percentage >= 95:
+            status_style = "green"
+            status_text = "success"
+        elif report.overall_match_percentage >= 70:
+            status_style = "yellow"
+            status_text = "warning"
+        else:
+            status_style = "red"
+            status_text = "error"
+
+        # Header panel
+        panel = Panel(
+            f"[{status_text}]Overall Match Rate: {report.overall_match_percentage:.1f}%[/]",
+            title="Namespace Analysis Report",
+            border_style=status_style,
+        )
+        console.print(panel)
+
+        # Summary table
+        summary_table = Table(show_header=False, box=None, padding=(0, 2))
+        summary_table.add_column("Metric", style="info")
+        summary_table.add_column("Value", style="count", justify="right")
+        summary_table.add_row("Assemblies Analyzed", str(report.total_assemblies))
+        summary_table.add_row("Total Files", str(report.total_files))
+        summary_table.add_row("Matching Namespaces", str(report.total_matched))
+        summary_table.add_row("Mismatched Namespaces", str(report.total_mismatched))
+        summary_table.add_row("Files without Namespace", str(report.total_no_namespace))
+        console.print(summary_table)
+        console.print()
 
         # Show problem assemblies
         problem_assemblies = report.get_problem_assemblies()
 
         if not problem_assemblies:
-            logger.info("✓ All assemblies have perfect namespace compliance!\n")
+            console.print("[success]All assemblies have perfect namespace compliance![/]")
+            console.print()
             return
 
-        logger.warning("⚠ %d assemblies have namespace issues:\n", len(problem_assemblies))
+        console.print(f"[warning]{len(problem_assemblies)} assemblies have namespace issues:[/]")
+        console.print()
+
+        # Problem assemblies table
+        problem_table = Table(title="Problem Assemblies")
+        problem_table.add_column("Assembly", style="assembly")
+        problem_table.add_column("Root Namespace", style="muted")
+        problem_table.add_column("Total", justify="right")
+        problem_table.add_column("Matched", justify="right", style="success")
+        problem_table.add_column("Mismatched", justify="right", style="error")
+        problem_table.add_column("No NS", justify="right", style="warning")
+        if self.allow_child_namespaces:
+            problem_table.add_column("Compliance", justify="right")
+        else:
+            problem_table.add_column("Match %", justify="right")
 
         for stats in problem_assemblies:
-            self._print_assembly_stats(stats)
+            rate = (
+                f"{stats.compliance_percentage:.1f}%"
+                if self.allow_child_namespaces
+                else f"{stats.match_percentage:.1f}%"
+            )
+            problem_table.add_row(
+                stats.assembly_name,
+                stats.root_namespace or "(none)",
+                str(stats.total_files),
+                str(stats.matched_files),
+                str(stats.unmatched_files),
+                str(stats.no_namespace_files),
+                rate,
+            )
 
-    def _print_assembly_stats(self, stats: AssemblyNamespaceStats) -> None:
-        """Print statistics for a single assembly.
+        console.print(problem_table)
+        console.print()
+
+        # Verbose file listings
+        if self.verbose:
+            for stats in problem_assemblies:
+                self._print_file_details(stats)
+
+    def _print_file_details(self, stats: AssemblyNamespaceStats) -> None:
+        """Print detailed file paths for an assembly with issues.
 
         Args:
             stats: AssemblyNamespaceStats for one assembly
         """
-        logger.info("Assembly: %s", stats.assembly_name)
-        logger.info("  Root Namespace: %s", stats.root_namespace or "(none)")
-        logger.info("  Total Files: %d", stats.total_files)
-        logger.info("  Matched: %d", stats.matched_files)
+        console = self.console
 
-        if self.allow_child_namespaces:
-            logger.info("  Child Namespaces: %d", stats.child_namespace_files)
-            logger.info("  Compliance: %.1f%%", stats.compliance_percentage)
-        else:
-            logger.info("  Match Rate: %.1f%%", stats.match_percentage)
+        if stats.unmatched_files > 0 and stats.unmatched_file_paths:
+            console.print(f"[assembly]{stats.assembly_name}[/] - Mismatched files:")
+            for path in stats.unmatched_file_paths[:5]:
+                console.print(f"  [path]{path}[/]")
+            if len(stats.unmatched_file_paths) > 5:
+                remaining = len(stats.unmatched_file_paths) - 5
+                console.print(f"  [muted]... and {remaining} more[/]")
+            console.print()
 
-        if stats.unmatched_files > 0:
-            logger.warning("  ⚠ Mismatched: %d", stats.unmatched_files)
-            if self.verbose and stats.unmatched_file_paths:
-                for path in stats.unmatched_file_paths[:5]:  # Show max 5
-                    logger.info("     - %s", path)
-                if len(stats.unmatched_file_paths) > 5:
-                    logger.info("     ... and %d more", len(stats.unmatched_file_paths) - 5)
-
-        if stats.no_namespace_files > 0:
-            logger.warning("  ⚠ No Namespace: %d", stats.no_namespace_files)
-            if self.verbose and stats.no_namespace_paths:
-                for path in stats.no_namespace_paths[:5]:
-                    logger.info("     - %s", path)
-                if len(stats.no_namespace_paths) > 5:
-                    logger.info("     ... and %d more", len(stats.no_namespace_paths) - 5)
-
-        logger.info("")
+        if stats.no_namespace_files > 0 and stats.no_namespace_paths:
+            console.print(f"[assembly]{stats.assembly_name}[/] - Files without namespace:")
+            for path in stats.no_namespace_paths[:5]:
+                console.print(f"  [path]{path}[/]")
+            if len(stats.no_namespace_paths) > 5:
+                remaining = len(stats.no_namespace_paths) - 5
+                console.print(f"  [muted]... and {remaining} more[/]")
+            console.print()
 
     def generate_json_report(self, report: NamespaceAnalysisReport) -> dict[str, Any]:
         """Generate JSON-serializable namespace report.
@@ -155,14 +217,20 @@ class NamespaceReporter(BaseReporter):
         Args:
             report: NamespaceAnalysisReport to summarize
         """
-        logger.info("\n%s", "=" * 60)
-        logger.info("NAMESPACE ANALYSIS SUMMARY")
-        logger.info("%s", "=" * 60)
-        logger.info("Files Analyzed: %d", report.total_files)
-        logger.info("Match Rate: %.1f%%", report.overall_match_percentage)
-        logger.info(
-            "Problem Assemblies: %d/%d",
-            len(report.get_problem_assemblies()),
-            report.total_assemblies,
+        console = self.console
+
+        console.print(Rule("Namespace Analysis Summary", style="info"))
+
+        # Summary table
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("Metric", style="info")
+        table.add_column("Value", style="count", justify="right")
+        table.add_row("Files Analyzed", str(report.total_files))
+        table.add_row("Match Rate", f"{report.overall_match_percentage:.1f}%")
+        table.add_row(
+            "Problem Assemblies",
+            f"{len(report.get_problem_assemblies())}/{report.total_assemblies}",
         )
-        logger.info("%s\n", "=" * 60)
+
+        console.print(table)
+        console.print()

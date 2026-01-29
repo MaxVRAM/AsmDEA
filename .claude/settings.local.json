@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:rich.readthedocs.io)",
+      "Bash(python -m venv:*)"
+    ]
+  }
+}

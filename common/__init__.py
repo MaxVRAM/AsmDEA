@@ -23,6 +23,7 @@ from .exceptions import (
     InvalidFormatError,
 )
 from .file_io import load_asmdef_dict, save_json_report
+from .console import configure_console, get_console, reset_console
 from .logging_config import get_logger, setup_logging
 from .path_utils import validate_directory
 from .script_runner import ScriptRunner
@@ -54,4 +55,7 @@ __all__ = [
     "ScriptRunner",
     "get_logger",
     "setup_logging",
+    "get_console",
+    "configure_console",
+    "reset_console",
 ]

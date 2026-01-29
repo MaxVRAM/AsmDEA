@@ -14,7 +14,9 @@ A Python toolkit for analyzing Unity Assembly Definition (`.asmdef`) files, dete
 ## Table of Contents
 
 - [Installation](#installation)
-- [Quick Start](#quick-start)
+- [Quick Start (CLI)](#quick-start-cli)
+- [Quick Start (Python API)](#quick-start-python-api)
+- [Command-Line Usage](#command-line-usage)
 - [Architecture](#architecture)
 - [Usage Examples](#usage-examples)
 - [Configuration](#configuration)
@@ -55,7 +57,38 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Quick Start
+## Quick Start (CLI)
+
+**Recommended for most users** - Analyze your Unity project from the command line:
+
+```bash
+# Run complete analysis on your Unity project
+python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
+
+# The above command will:
+# 1. Map all C# files to their owning assemblies
+# 2. Validate namespace compliance
+# 3. Detect circular dependencies
+# 4. Generate JSON reports in ./reports/
+
+# Use environment variables (create .env from .env.example)
+cp .env.example .env
+# Edit .env with your project path
+python asmdef_cli.py analyze
+
+# Run specific analyses
+python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
+python asmdef_cli.py validate-namespaces --project-path ./Assets
+python asmdef_cli.py map-files --project-path ./Assets
+
+# Get help
+python asmdef_cli.py --help
+python asmdef_cli.py analyze --help
+```
+
+## Quick Start (Python API)
+
+**For programmatic usage** - Import and use the analysis components in your own Python scripts:
 
 ```python
 from pathlib import Path
@@ -221,6 +254,204 @@ Flow:
    - Analyze namespace compliance
    - Detect circular dependencies
 3. **Output**: Console reports and JSON files
+
+## Command-Line Usage
+
+The `asmdef_cli.py` script provides a unified command-line interface for all analysis operations. It supports configuration via command-line arguments or a `.env` file.
+
+### Setup Environment Variables (Optional)
+
+Create a `.env` file from the template:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your project settings:
+
+```bash
+# Project Configuration
+ROOT_PATH=D:/Unity/MyProject/Assets
+
+# Output Configuration
+DICT_FILE=./reports/asmdef_dictionary.json
+OUTPUT_PATH=./reports
+
+# Analysis Options
+DEPTH=5
+DETAILED=true
+
+# Cycle Detection Options
+ALLOW_CHILD_NAMESPACES=false
+
+# Logging Configuration
+LOG_LEVEL=INFO
+```
+
+Command-line arguments override environment variables.
+
+### Commands
+
+#### Complete Analysis (`analyze`)
+
+Runs the full analysis pipeline: file mapping → namespace validation → cycle detection.
+
+```bash
+# Using .env configuration
+python asmdef_cli.py analyze
+
+# Using command-line arguments
+python asmdef_cli.py analyze \
+  --project-path D:/Unity/MyProject/Assets \
+  --dict-file ./reports/asmdef_dictionary.json \
+  --output-dir ./reports \
+  --verbose
+
+# Short form (alias)
+python asmdef_cli.py all --project-path ./Assets
+```
+
+**Options:**
+- `--project-path PATH`: Unity Assets directory (required, or set `ROOT_PATH` in .env)
+- `--dict-file PATH`: Assembly dictionary JSON file (default: `./reports/asmdef_dictionary.json`)
+- `--output-dir PATH`: Output directory for reports (default: `./reports`)
+- `--depth N`: Maximum tree depth in cycle reports (default: 5)
+- `--detailed`: Include detailed dependency trees
+- `--allow-child-namespaces`: Allow child namespaces in validation
+- `--verbose`: Enable verbose logging
+- `--log-file PATH`: Write logs to file
+
+**Exit codes:**
+- `0`: Success (no cycles or validation issues)
+- `1`: Analysis completed with errors (cycles found or validation failures)
+- `130`: User interrupted (Ctrl+C)
+
+#### Detect Cycles (`detect-cycles`)
+
+Detect circular dependencies only (requires existing dictionary).
+
+```bash
+# Using existing dictionary
+python asmdef_cli.py detect-cycles \
+  --dict-file ./reports/asmdef_dictionary.json \
+  --output-dir ./reports \
+  --depth 10 \
+  --detailed
+```
+
+**Options:**
+- `--dict-file PATH`: Assembly dictionary JSON (required)
+- `--output-dir PATH`: Output directory for cycle reports
+- `--depth N`: Maximum tree depth for visualization
+- `--detailed`: Include detailed dependency trees
+
+#### Validate Namespaces (`validate-namespaces`)
+
+Check namespace compliance only.
+
+```bash
+# Validate namespaces in project
+python asmdef_cli.py validate-namespaces \
+  --project-path D:/Unity/MyProject/Assets \
+  --allow-child-namespaces \
+  --verbose
+
+# Update dictionary with namespace analysis
+python asmdef_cli.py validate-namespaces \
+  --project-path ./Assets \
+  --dict-file ./reports/asmdef_dictionary.json
+```
+
+**Options:**
+- `--project-path PATH`: Unity Assets directory (required)
+- `--dict-file PATH`: Dictionary to update (optional)
+- `--allow-child-namespaces`: Allow child namespaces
+- `--verbose`: Show validation details
+
+#### Map Files (`map-files`)
+
+Map C# files to their owning assemblies.
+
+```bash
+# Map files and create/update dictionary
+python asmdef_cli.py map-files \
+  --project-path D:/Unity/MyProject/Assets \
+  --dict-file ./reports/asmdef_dictionary.json \
+  --output-dir ./reports
+```
+
+**Options:**
+- `--project-path PATH`: Unity Assets directory (required)
+- `--dict-file PATH`: Dictionary to create/update
+- `--output-dir PATH`: Output directory for file mapping report
+
+#### Build Dictionary (`build-dict`)
+
+Create initial assembly dictionary from `.asmdef` files.
+
+```bash
+# Create dictionary from Unity project
+python asmdef_cli.py build-dict \
+  --project-path D:/Unity/MyProject/Assets \
+  --dict-file ./reports/asmdef_dictionary.json \
+  --verbose
+```
+
+**Options:**
+- `--project-path PATH`: Unity Assets directory (required)
+- `--dict-file PATH`: Dictionary output file
+- `--verbose`: Show dictionary building details
+
+### Common Workflows
+
+**First-time analysis:**
+
+```bash
+# 1. Create .env file
+cp .env.example .env
+# Edit .env with your ROOT_PATH
+
+# 2. Run complete analysis
+python asmdef_cli.py analyze
+
+# Reports generated in ./reports/:
+# - asmdef_dictionary.json
+# - cycle_report.json
+# - cycle_report_summary.json
+# - namespace_validation.json (if issues found)
+# - file_mapping.json
+```
+
+**Daily development workflow:**
+
+```bash
+# Quick check for new circular dependencies
+python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
+
+# Validate namespaces after refactoring
+python asmdef_cli.py validate-namespaces --project-path ./Assets
+```
+
+**CI/CD integration:**
+
+```bash
+# Exit with error code if cycles detected
+python asmdef_cli.py analyze --project-path ./Assets || exit 1
+```
+
+### Getting Help
+
+```bash
+# General help
+python asmdef_cli.py --help
+
+# Command-specific help
+python asmdef_cli.py analyze --help
+python asmdef_cli.py detect-cycles --help
+python asmdef_cli.py validate-namespaces --help
+python asmdef_cli.py map-files --help
+python asmdef_cli.py build-dict --help
+```
 
 ## Usage Examples
 

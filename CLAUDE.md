@@ -1,7 +1,7 @@
 # ScriptFlattener - Codebase Analysis & Refactoring Plan
 
 **Last Updated:** January 29, 2026  
-**Status:** Phase 6.1 & 6.2 Complete ✅ | 50 Tests Passing | 77% Coverage | Centralized Logging
+**Status:** Phase 6.2 Complete ✅ | Legacy Code Removed | Complete Documentation
 
 > 🔴 **CRITICAL: VIRTUAL ENVIRONMENT REQUIREMENT**  
 > **ALL Python commands, tests, and package installations MUST use the project's virtual environment:**  
@@ -49,11 +49,7 @@ This is a Unity Assembly Definition (`.asmdef`) analysis toolchain that has grow
 
 ```
 ScriptFlattener/
-├── asmdef_analyse.py               # Main orchestrator (runs other scripts)
-├── asmdef_dictionary.py            # Builds assembly definition database
-├── asmdef_cyclic_report.py         # Detects circular dependencies
-├── asmdef_file_analyser.py         # Analyzes C# files per assembly
-├── asmdef_namespace_analyser.py    # Validates namespace declarations
+├── README.md                       # ✅ Comprehensive usage guide (Phase 6.2)
 ├── requirements.txt                # Python dependencies
 ├── pyproject.toml                  # ✅ Project configuration (Phase 5)
 ├── pytest.ini                      # ✅ Test configuration (Phase 5)
@@ -2136,9 +2132,29 @@ class AsmdefCLI:
 - [x] Ensure all functions have complete docstrings
     - All public functions already have docstrings with Args, Returns, Raises sections
     - Verified during code review
-- [ ] Add usage examples to README
-- [ ] Document configuration options
-- [ ] Add architecture diagram
+- [x] Add usage examples to README
+    - Created comprehensive README.md (650+ lines)
+    - 4 complete usage examples covering all major scenarios
+    - Quick start guide for new users
+- [x] Document configuration options
+    - Detailed AnalysisConfig documentation with all parameters
+    - Logging configuration guide with examples
+    - Reporter configuration options
+- [x] Add architecture diagram
+    - ASCII art diagram showing all modules and data flow
+    - Module structure tree
+    - Complete system architecture with layers
+
+**Completed Documentation:**
+- `README.md` (650+ lines): Installation, quick start, usage examples, configuration, API reference
+- Architecture diagram with module structure and data flow
+- 4 complete working examples:
+  1. Detect circular dependencies
+  2. Validate namespace compliance
+  3. Map C# files to assemblies
+  4. Complete analysis pipeline
+- Configuration documentation for AnalysisConfig, logging, and reporters
+- API reference for all analyzers and data models
 
 **Enhanced Module Docstrings:**
 - common/: script_runner.py, path_utils.py, file_io.py, exceptions.py, constants.py, asmdef_dict.py
@@ -2151,6 +2167,26 @@ class AsmdefCLI:
 - ✅ Black formatting applied
 - ✅ Ruff linting clean (only N999 warnings about project folder name)
 - ✅ No syntax errors or import issues
+
+**Legacy Code Cleanup:**
+- ✅ Removed all root-level legacy scripts:
+    - asmdef_analyse.py (orchestrator)
+    - asmdef_dictionary.py (dictionary builder)
+    - asmdef_cyclic_report.py (cycle detector)
+    - asmdef_file_analyser.py (file mapper)
+    - asmdef_namespace_analyser.py (namespace validator)
+- ✅ Functionality fully migrated to new architecture:
+    - analyzers/ package for business logic
+    - reporting/ package for output
+    - models/ package for data structures
+    - common/ package for utilities
+
+**Phase 6.1 & 6.2 Summary:**
+- 🔄 Replaced print() with structured logging throughout
+- 📚 Created comprehensive README.md with 650+ lines
+- 🏗️ Documented complete architecture with diagrams
+- 🧹 Removed all legacy code implementations
+- ✅ All functionality available through new API
 
 #### 6.3 Add CI/CD 📋 TODO
 

@@ -21,6 +21,13 @@ dev = [
     "ruff>=0.1.0",
 ]
 
+[project.scripts]
+asmdef-cli = "asmdef_cli:main"
+
+[tool.setuptools.packages.find]
+include = ["common*", "models*", "analyzers*", "analysis*", "reporting*", "utilities*"]
+exclude = ["tests*", "reports*", "htmlcov*"]
+
 # Black configuration
 [tool.black]
 line-length = 100

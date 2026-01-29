@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""Unity Assembly Definition Analysis CLI.
+
+Unified command-line interface for asmdef analysis operations.
+Utilizes refactored analyzers and reporters from the project.
+
+Commands:
+    analyze (all)       - Run complete analysis pipeline
+    build-dict          - Build assembly dictionary only
+    detect-cycles       - Detect circular dependencies only
+    map-files           - Map C# files to assemblies only
+    validate-namespaces - Validate namespace compliance only
+
+Usage:
+    python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
+    python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
+    python asmdef_cli.py --help
+"""
+
+import argparse
+import os
+import sys
+from pathlib import Path
+from typing import Any
+
+# Optional: Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+from analysis.dictionary import build_asmdef_dictionary
+from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
+from common import get_logger, load_asmdef_dict, save_json_report, setup_logging
+from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter
+
+
+def get_env_or_default(key: str, default: str) -> str:
+    """Get environment variable or return default."""
+    return os.environ.get(key, default)
+
+
+def create_parser() -> argparse.ArgumentParser:
+    """Create argument parser with all commands."""
+    parser = argparse.ArgumentParser(
+        prog="asmdef_cli",
+        description="Unity Assembly Definition Analysis Toolkit",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python asmdef_cli.py analyze --project-path D:/Unity/MyProject/Assets
+  python asmdef_cli.py detect-cycles --dict-file ./reports/asmdef_dictionary.json
+  python asmdef_cli.py validate-namespaces --project-path ./Assets
+
+Environment Variables (from .env file):
+  ROOT_PATH    - Default project path
+  OUTPUT_PATH  - Default output directory (default: ./reports)
+  DICT_FILE    - Default dictionary file path
+  LOG_LEVEL    - Logging level (DEBUG/INFO/WARNING/ERROR)
+        """,
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--log-level",
+        default=get_env_or_default("LOG_LEVEL", "INFO"),
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Log level (default: INFO)",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Common arguments for commands that need project path
+    project_args = argparse.ArgumentParser(add_help=False)
+    project_args.add_argument(
+        "--project-path",
+        "-p",
+        type=Path,
+        default=Path(get_env_or_default("ROOT_PATH", ".")),
+        help="Unity project Assets path",
+    )
+    project_args.add_argument(
+        "--output-dir",
+        "-o",
+        type=Path,
+        default=Path(get_env_or_default("OUTPUT_PATH", "./reports")),
+        help="Output directory for reports",
+    )
+    project_args.add_argument(
+        "--dict-file",
+        "-d",
+        type=Path,
+        default=Path(get_env_or_default("DICT_FILE", "./reports/asmdef_dictionary.json")),
+        help="Dictionary file path",
+    )
+
+    # analyze command (full pipeline)
+    analyze = subparsers.add_parser(
+        "analyze",
+        aliases=["all"],
+        parents=[project_args],
+        help="Run complete analysis pipeline",
+    )
+    analyze.add_argument(
+        "--allow-child-namespaces",
+        action="store_true",
+        default=True,
+        help="Allow child namespaces (default: True)",
+    )
+    analyze.add_argument(
+        "--no-child-namespaces",
+        dest="allow_child_namespaces",
+        action="store_false",
+        help="Require exact namespace matches",
+    )
+
+    # build-dict command
+    subparsers.add_parser(
+        "build-dict",
+        parents=[project_args],
+        help="Build assembly dictionary from project",
+    )
+
+    # detect-cycles command
+    cycles = subparsers.add_parser(
+        "detect-cycles",
+        parents=[project_args],
+        help="Detect circular dependencies",
+    )
+    cycles.add_argument(
+        "--detailed",
+        action="store_true",
+        default=False,
+        help="Show detailed dependency trees",
+    )
+
+    # map-files command
+    subparsers.add_parser(
+        "map-files",
+        parents=[project_args],
+        help="Map C# files to assemblies",
+    )
+
+    # validate-namespaces command
+    ns = subparsers.add_parser(
+        "validate-namespaces",
+        parents=[project_args],
+        help="Validate namespace compliance",
+    )
+    ns.add_argument(
+        "--allow-child-namespaces",
+        action="store_true",
+        default=True,
+        help="Allow child namespaces (default: True)",
+    )
+    ns.add_argument(
+        "--no-child-namespaces",
+        dest="allow_child_namespaces",
+        action="store_false",
+        help="Require exact namespace matches",
+    )
+
+    return parser
+
+
+def validate_project_path(project_path: Path, logger: Any) -> bool:
+    """Validate that project path exists and is a directory."""
+    if not project_path.exists():
+        logger.error("Project path does not exist: %s", project_path)
+        return False
+    if not project_path.is_dir():
+        logger.error("Project path is not a directory: %s", project_path)
+        return False
+    return True
+
+
+def cmd_build_dict(args: argparse.Namespace, logger: Any) -> int:
+    """Build assembly dictionary from project."""
+    if not validate_project_path(args.project_path, logger):
+        return 2
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Building assembly dictionary from %s", args.project_path)
+    asmdef_dict = build_asmdef_dictionary(str(args.project_path))
+
+    if not asmdef_dict:
+        logger.error("Failed to build dictionary - no assemblies found")
+        return 1
+
+    save_json_report(asmdef_dict, args.dict_file)
+    logger.info("Dictionary saved to %s (%d assemblies)", args.dict_file, len(asmdef_dict))
+    return 0
+
+
+def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
+    """Detect circular dependencies."""
+    if not args.dict_file.exists():
+        logger.error("Dictionary file not found: %s", args.dict_file)
+        logger.info("Run 'build-dict' command first to create the dictionary")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+
+    analyzer = CycleAnalyzer(asmdef_dict)
+    report = analyzer.analyze()
+
+    reporter = CycleReporter(verbose=args.verbose)
+    reporter.print_console_report(report)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    reporter.save_json_report(report, args.output_dir / "cycle_report.json")
+
+    return 1 if report.total_cycles > 0 else 0
+
+
+def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
+    """Map C# files to assemblies."""
+    if not validate_project_path(args.project_path, logger):
+        return 2
+
+    if not args.dict_file.exists():
+        logger.error("Dictionary file not found: %s", args.dict_file)
+        logger.info("Run 'build-dict' command first to create the dictionary")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+
+    analyzer = FileAnalyzer(asmdef_dict, args.project_path)
+    result = analyzer.analyze()
+
+    reporter = FileAnalysisReporter(verbose=args.verbose)
+    reporter.print_console_report(result)
+
+    # Save updated dictionary with file mappings
+    save_json_report(result["asmdef_dict"], args.dict_file)
+    logger.info("Updated dictionary saved to %s", args.dict_file)
+
+    return 0
+
+
+def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
+    """Validate namespace compliance."""
+    if not validate_project_path(args.project_path, logger):
+        return 2
+
+    if not args.dict_file.exists():
+        logger.error("Dictionary file not found: %s", args.dict_file)
+        logger.info("Run 'build-dict' and 'map-files' commands first")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+
+    analyzer = NamespaceAnalyzer(asmdef_dict, args.project_path, args.allow_child_namespaces)
+    report = analyzer.analyze()
+
+    reporter = NamespaceReporter(verbose=args.verbose, allow_child_namespaces=args.allow_child_namespaces)
+    reporter.print_console_report(report)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    reporter.save_json_report(report, args.output_dir / "namespace_report.json")
+
+    # Return 1 if there are issues
+    has_issues = report.total_mismatched > 0 or report.total_no_namespace > 0
+    return 1 if has_issues else 0
+
+
+def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
+    """Run complete analysis pipeline."""
+    exit_code = 0
+
+    # Step 1: Build dictionary
+    logger.info("=" * 60)
+    logger.info("Step 1/4: Building Assembly Dictionary")
+    logger.info("=" * 60)
+    result = cmd_build_dict(args, logger)
+    if result != 0:
+        return result
+
+    # Step 2: Map files
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Step 2/4: Mapping C# Files to Assemblies")
+    logger.info("=" * 60)
+    cmd_map_files(args, logger)
+
+    # Step 3: Validate namespaces
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Step 3/4: Validating Namespace Compliance")
+    logger.info("=" * 60)
+    if cmd_validate_namespaces(args, logger) != 0:
+        exit_code = 1
+
+    # Step 4: Detect cycles
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Step 4/4: Detecting Circular Dependencies")
+    logger.info("=" * 60)
+    if cmd_detect_cycles(args, logger) != 0:
+        exit_code = 1
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Analysis Complete - Reports saved to %s", args.output_dir)
+    logger.info("=" * 60)
+
+    return exit_code
+
+
+def main() -> int:
+    """Main entry point."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        return 2
+
+    setup_logging(level=args.log_level)
+    logger = get_logger(__name__)
+
+    commands = {
+        "analyze": cmd_analyze,
+        "all": cmd_analyze,
+        "build-dict": cmd_build_dict,
+        "detect-cycles": cmd_detect_cycles,
+        "map-files": cmd_map_files,
+        "validate-namespaces": cmd_validate_namespaces,
+    }
+
+    try:
+        return commands[args.command](args, logger)
+    except KeyboardInterrupt:
+        logger.info("\nOperation cancelled")
+        return 130
+    except Exception as e:
+        logger.error("Error: %s", e)
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

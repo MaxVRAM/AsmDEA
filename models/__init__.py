@@ -1,7 +1,7 @@
 """Data models for assembly definitions and analysis results."""
 
 from .asmdef_entry import AsmdefEntry
-from .config import AnalysisConfig, CounterConfig, FlattenerConfig
+from .config import AnalysisConfig
 from .cycle_report import (
     CycleDetails,
     CyclePath,
@@ -20,8 +20,6 @@ __all__ = [
     "AsmdefEntry",
     # Configuration
     "AnalysisConfig",
-    "FlattenerConfig",
-    "CounterConfig",
     # Namespace analysis
     "NamespaceMatch",
     "AssemblyNamespaceStats",

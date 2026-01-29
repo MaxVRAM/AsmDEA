@@ -42,7 +42,10 @@ class ScriptRunner:
 
         try:
             return subprocess.run(
-                [sys.executable, str(script_path)] + args, check=check, capture_output=False, text=True
+                [sys.executable, str(script_path)] + args,
+                check=check,
+                capture_output=False,
+                text=True,
             )
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to {step_description} (exit code {e.returncode})") from e

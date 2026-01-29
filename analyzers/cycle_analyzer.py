@@ -18,7 +18,9 @@ class CycleAnalyzer:
         self.asmdef_dict = asmdef_dict
         self.graph, self.guid_to_name, self.name_to_guid = self._build_dependency_graph()
 
-    def _build_dependency_graph(self) -> tuple[dict[str, list[str]], dict[str, str], dict[str, str]]:
+    def _build_dependency_graph(
+        self,
+    ) -> tuple[dict[str, list[str]], dict[str, str], dict[str, str]]:
         """Build dependency graph from assembly data.
 
         Returns:

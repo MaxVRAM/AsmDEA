@@ -79,7 +79,9 @@ class FileAnalyzer:
         """
         # Find all .cs files
         all_cs_files = self.root_path.rglob("*.cs")
-        cs_files = [f for f in all_cs_files if not self.should_ignore_path(f.relative_to(self.root_path))]
+        cs_files = [
+            f for f in all_cs_files if not self.should_ignore_path(f.relative_to(self.root_path))
+        ]
 
         # Assign files to assemblies
         assembly_files = defaultdict(list)

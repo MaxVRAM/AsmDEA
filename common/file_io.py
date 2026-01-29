@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 def load_asmdef_dict(filepath: Path | str) -> dict[str, Any]:
@@ -22,8 +22,8 @@ def load_asmdef_dict(filepath: Path | str) -> dict[str, Any]:
     """
     path = Path(filepath)
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(path, encoding="utf-8") as f:
+            return cast(dict[str, Any], json.load(f))
     except FileNotFoundError:
         print(f"Error: Dictionary file not found: {path}", file=sys.stderr)
         sys.exit(1)

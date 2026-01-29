@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from common.file_io import load_asmdef_dict, save_json_report
 
 

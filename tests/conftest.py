@@ -1,13 +1,13 @@
 """Pytest configuration and shared fixtures."""
 
-import pytest
 from pathlib import Path
-import json
-from typing import Dict, Any
+from typing import Any
+
+import pytest
 
 
 @pytest.fixture
-def sample_asmdef_data() -> Dict[str, Any]:
+def sample_asmdef_data() -> dict[str, Any]:
     """Sample assembly definition data for testing."""
     return {
         "name": "TestAssembly",
@@ -26,7 +26,7 @@ def sample_asmdef_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_asmdef_dict() -> Dict[str, Any]:
+def sample_asmdef_dict() -> dict[str, Any]:
     """Sample asmdef dictionary with multiple assemblies."""
     return {
         "GUID:assembly1": {
@@ -55,7 +55,7 @@ def sample_asmdef_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_cyclic_dict() -> Dict[str, Any]:
+def sample_cyclic_dict() -> dict[str, Any]:
     """Sample asmdef dictionary with cyclic dependencies."""
     return {
         "GUID:a": {
@@ -133,7 +133,7 @@ MonoImporter:
   defaultReferences: []
   executionOrder: 0
   icon: {instanceID: 0}
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
+  userData:
+  assetBundleName:
+  assetBundleVariant:
 """

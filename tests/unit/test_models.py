@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from models import AnalysisConfig, AsmdefEntry, CycleReport, NamespaceAnalysisReport
 
 
@@ -137,7 +135,7 @@ class TestNamespaceAnalysisReport:
 
     def test_get_problem_assemblies(self, sample_asmdef_dict):
         """Test identifying assemblies with namespace problems."""
-        from models import AssemblyNamespaceStats, NamespaceMatch
+        from models import AssemblyNamespaceStats
 
         # Create a report with one assembly having problems
         stats1 = AssemblyNamespaceStats(

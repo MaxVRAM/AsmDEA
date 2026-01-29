@@ -1,15 +1,15 @@
 """Unit tests for common.constants module."""
 
-import pytest
 from pathlib import Path
+
 from common.constants import (
-    DEFAULT_OUTPUT_DIR,
-    DEFAULT_DICT_FILE,
-    DEFAULT_REPORTS_DIR,
     ASMDEF_EXTENSION,
     CS_EXTENSION,
-    META_EXTENSION,
+    DEFAULT_DICT_FILE,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_REPORTS_DIR,
     GUID_PREFIX,
+    META_EXTENSION,
     NodeState,
 )
 

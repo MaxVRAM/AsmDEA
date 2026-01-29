@@ -10,7 +10,9 @@ from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 class NamespaceAnalyzer:
     """Analyzes C# file namespaces within assemblies."""
 
-    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path, allow_child_namespaces: bool = True):
+    def __init__(
+        self, asmdef_dict: dict[str, Any], root_path: Path, allow_child_namespaces: bool = True
+    ):
         """Initialize namespace analyzer.
 
         Args:
@@ -35,7 +37,7 @@ class NamespaceAnalyzer:
         namespaces = []
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Remove single-line comments
@@ -135,7 +137,9 @@ class NamespaceAnalyzer:
             if primary_namespace == root_namespace:
                 stats.matched_files += 1
                 stats.matched_file_paths.append(file_path)
-            elif self.allow_child_namespaces and self.is_child_namespace(primary_namespace, root_namespace):
+            elif self.allow_child_namespaces and self.is_child_namespace(
+                primary_namespace, root_namespace
+            ):
                 stats.child_namespace_files += 1
                 stats.child_namespace_paths.append(file_path)
             else:

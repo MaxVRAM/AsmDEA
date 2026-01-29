@@ -110,5 +110,7 @@ class NamespaceAnalysisReport:
             List of assemblies with mismatches or missing namespaces
         """
         return [
-            stats for stats in self.assembly_stats.values() if stats.unmatched_files > 0 or stats.no_namespace_files > 0
+            stats
+            for stats in self.assembly_stats.values()
+            if stats.unmatched_files > 0 or stats.no_namespace_files > 0
         ]

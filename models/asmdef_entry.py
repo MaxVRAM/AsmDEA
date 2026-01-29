@@ -79,7 +79,7 @@ class AsmdefEntry:
         Returns:
             Dictionary compatible with .asmdef JSON format
         """
-        result = {
+        result: dict[str, Any] = {
             "name": self.name,
             "references": self.references,
         }

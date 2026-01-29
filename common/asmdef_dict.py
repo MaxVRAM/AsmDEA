@@ -1,6 +1,6 @@
 """Utilities for working with asmdef dictionary structures."""
 
-from typing import Any
+from typing import Any, cast
 
 from .constants import METADATA_KEY
 
@@ -30,7 +30,7 @@ def get_metadata(asmdef_dict: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Metadata dictionary, or empty dict if no metadata exists
     """
-    return asmdef_dict.get(METADATA_KEY, {})
+    return cast(dict[str, Any], asmdef_dict.get(METADATA_KEY, {}))
 
 
 def set_metadata(asmdef_dict: dict[str, Any], key: str, value: Any) -> None:

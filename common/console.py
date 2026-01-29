@@ -26,6 +26,8 @@ from __future__ import annotations
 import os
 
 from rich.console import Console
+from rich.panel import Panel
+from rich.rule import Rule
 from rich.theme import Theme
 
 # Custom theme for AsmDEA output
@@ -42,6 +44,8 @@ ASMDEF_THEME = Theme(
         "count": "bold white",
         "cycle": "bold red",
         "no_cycle": "dim",
+        "step": "bold cyan",
+        "section": "bold white",
     }
 )
 
@@ -110,3 +114,92 @@ def reset_console() -> None:
     global _console, _plain_mode
     _console = None
     _plain_mode = False
+
+
+def print_section_header(
+    title: str,
+    step: int | None = None,
+    total_steps: int | None = None,
+    style: str = "info",
+) -> None:
+    """Print a styled section header using Rich.
+
+    Creates a visually distinct section header with optional step numbering.
+    Use this to clearly separate different phases of analysis.
+
+    Args:
+        title: The section title text
+        step: Current step number (optional)
+        total_steps: Total number of steps (optional)
+        style: Rich style to apply (default: 'info')
+
+    Example:
+        print_section_header("Building Assembly Dictionary", step=1, total_steps=4)
+    """
+    console = get_console()
+
+    if step is not None and total_steps is not None:
+        header_text = f"Step {step}/{total_steps}: {title}"
+    else:
+        header_text = title
+
+    console.print()
+    console.print(Rule(header_text, style=style, characters="─"))
+    console.print()
+
+
+def print_section_complete(
+    message: str,
+    success: bool = True,
+) -> None:
+    """Print a section completion message.
+
+    Args:
+        message: Completion message
+        success: Whether the section completed successfully
+    """
+    console = get_console()
+    style = "success" if success else "error"
+    icon = "✓" if success else "✗"
+    console.print(f"[{style}]{icon}[/] {message}")
+
+
+def print_analysis_header(title: str = "AsmDEA Analysis") -> None:
+    """Print the main analysis header panel.
+
+    Args:
+        title: Title for the analysis header
+    """
+    console = get_console()
+    console.print()
+    console.print(
+        Panel(
+            f"[bold]{title}[/]\n[muted]Assembly Dependency Enforcement Agency[/]",
+            border_style="info",
+            padding=(0, 2),
+        )
+    )
+    console.print()
+
+
+def print_analysis_complete(output_dir: str, success: bool = True) -> None:
+    """Print the analysis completion panel.
+
+    Args:
+        output_dir: Directory where reports were saved
+        success: Whether analysis completed successfully
+    """
+    console = get_console()
+    style = "green" if success else "yellow"
+    status = "Complete" if success else "Complete with Issues"
+
+    console.print()
+    console.print(
+        Panel(
+            f"[bold]Analysis {status}[/]\n\n[muted]Reports saved to:[/] [path]{output_dir}[/]",
+            border_style=style,
+            title="[bold]Summary[/]",
+            padding=(1, 2),
+        )
+    )
+    console.print()

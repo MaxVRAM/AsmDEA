@@ -33,7 +33,18 @@ except ImportError:
 
 from common.dictionary import build_asmdef_dictionary
 from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
-from common import configure_console, get_logger, load_asmdef_dict, save_json_report, setup_logging
+from common import (
+    configure_console,
+    get_console,
+    get_logger,
+    load_asmdef_dict,
+    print_analysis_complete,
+    print_analysis_header,
+    print_section_complete,
+    print_section_header,
+    save_json_report,
+    setup_logging,
+)
 from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter
 
 
@@ -171,11 +182,12 @@ Environment Variables (from .env file):
 
 def validate_project_path(project_path: Path, logger: Any) -> bool:
     """Validate that project path exists and is a directory."""
+    console = get_console()
     if not project_path.exists():
-        logger.error("Project path does not exist: %s", project_path)
+        console.print(f"[error]Project path does not exist:[/] [path]{project_path}[/]")
         return False
     if not project_path.is_dir():
-        logger.error("Project path is not a directory: %s", project_path)
+        console.print(f"[error]Project path is not a directory:[/] [path]{project_path}[/]")
         return False
     return True
 
@@ -187,23 +199,25 @@ def cmd_build_dict(args: argparse.Namespace, logger: Any) -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Building assembly dictionary from %s", args.project_path)
+    console = get_console()
+    console.print(f"Scanning for assemblies in [path]{args.project_path}[/]...")
     asmdef_dict = build_asmdef_dictionary(str(args.project_path))
 
     if not asmdef_dict:
-        logger.error("Failed to build dictionary - no assemblies found")
+        console.print("[error]Failed to build dictionary - no assemblies found[/]")
         return 1
 
     save_json_report(asmdef_dict, args.dict_file)
-    logger.info("Dictionary saved to %s (%d assemblies)", args.dict_file, len(asmdef_dict))
+    print_section_complete(f"Dictionary saved to [path]{args.dict_file}[/] ([count]{len(asmdef_dict)}[/] assemblies)")
     return 0
 
 
 def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
     """Detect circular dependencies."""
+    console = get_console()
     if not args.dict_file.exists():
-        logger.error("Dictionary file not found: %s", args.dict_file)
-        logger.info("Run 'build-dict' command first to create the dictionary")
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
@@ -225,9 +239,10 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
     if not validate_project_path(args.project_path, logger):
         return 2
 
+    console = get_console()
     if not args.dict_file.exists():
-        logger.error("Dictionary file not found: %s", args.dict_file)
-        logger.info("Run 'build-dict' command first to create the dictionary")
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
@@ -240,7 +255,7 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
 
     # Save updated dictionary with file mappings
     save_json_report(result["asmdef_dict"], args.dict_file)
-    logger.info("Updated dictionary saved to %s", args.dict_file)
+    print_section_complete(f"Updated dictionary saved to [path]{args.dict_file}[/]")
 
     return 0
 
@@ -250,9 +265,10 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
     if not validate_project_path(args.project_path, logger):
         return 2
 
+    console = get_console()
     if not args.dict_file.exists():
-        logger.error("Dictionary file not found: %s", args.dict_file)
-        logger.info("Run 'build-dict' and 'map-files' commands first")
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' and 'map-files' commands first[/]")
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
@@ -275,41 +291,31 @@ def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     """Run complete analysis pipeline."""
     exit_code = 0
 
+    # Print main header
+    print_analysis_header()
+
     # Step 1: Build dictionary
-    logger.info("=" * 60)
-    logger.info("Step 1/4: Building Assembly Dictionary")
-    logger.info("=" * 60)
+    print_section_header("Building Assembly Dictionary", step=1, total_steps=4)
     result = cmd_build_dict(args, logger)
     if result != 0:
         return result
 
     # Step 2: Map files
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("Step 2/4: Mapping C# Files to Assemblies")
-    logger.info("=" * 60)
+    print_section_header("Mapping C# Files to Assemblies", step=2, total_steps=4)
     cmd_map_files(args, logger)
 
     # Step 3: Validate namespaces
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("Step 3/4: Validating Namespace Compliance")
-    logger.info("=" * 60)
+    print_section_header("Validating Namespace Compliance", step=3, total_steps=4)
     if cmd_validate_namespaces(args, logger) != 0:
         exit_code = 1
 
     # Step 4: Detect cycles
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("Step 4/4: Detecting Circular Dependencies")
-    logger.info("=" * 60)
+    print_section_header("Detecting Circular Dependencies", step=4, total_steps=4)
     if cmd_detect_cycles(args, logger) != 0:
         exit_code = 1
 
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("Analysis Complete - Reports saved to %s", args.output_dir)
-    logger.info("=" * 60)
+    # Print completion summary
+    print_analysis_complete(str(args.output_dir), success=(exit_code == 0))
 
     return exit_code
 
@@ -341,14 +347,14 @@ def main() -> int:
     try:
         return commands[args.command](args, logger)
     except KeyboardInterrupt:
-        logger.info("\nOperation cancelled")
+        console = get_console()
+        console.print("\n[warning]Operation cancelled[/]")
         return 130
     except Exception as e:
-        logger.error("Error: %s", e)
+        console = get_console()
+        console.print(f"[error]Error:[/] {e}")
         if args.verbose:
-            import traceback
-
-            traceback.print_exc()
+            console.print_exception()
         return 1
 
 

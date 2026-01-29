@@ -23,7 +23,15 @@ from .exceptions import (
     InvalidFormatError,
 )
 from .file_io import load_asmdef_dict, save_json_report
-from .console import configure_console, get_console, reset_console
+from .console import (
+    configure_console,
+    get_console,
+    print_analysis_complete,
+    print_analysis_header,
+    print_section_complete,
+    print_section_header,
+    reset_console,
+)
 from .logging_config import get_logger, setup_logging
 from .path_utils import validate_directory
 from .dictionary import build_asmdef_dictionary
@@ -57,5 +65,9 @@ __all__ = [
     "get_console",
     "configure_console",
     "reset_console",
+    "print_section_header",
+    "print_section_complete",
+    "print_analysis_header",
+    "print_analysis_complete",
     "build_asmdef_dictionary",
 ]

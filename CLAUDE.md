@@ -4,6 +4,10 @@ Last Updated: January 29, 2026
 
 ---
 
+## Important Rule
+
+- Always use the provided virtual environment for development to ensure dependency consistency.
+
 ## Project Purpose
 
 Analyze Unity projects to detect circular dependencies between Assembly Definitions (`.asmdef`), validate namespace compliance, and map C# files to their owning assemblies. This toolkit helps maintain clean architecture in large Unity codebases.
@@ -294,29 +298,3 @@ python -m venv .venv
 - **README.md** - User guide, installation, API reference, examples
 - **pyproject.toml** - Project metadata and tool configuration
 - **.env.example** - Configuration template with all options
-
----
-
-## Current Work: Rich Console Output Implementation
-
-**Goal:** Replace Python `logging`-based console output with Rich library for enhanced terminal displays (tables, trees, panels, colors).
-
-### Status: ✅ COMPLETED
-
-All tasks completed successfully:
-
-- ✅ Added `rich>=13.0.0` to `pyproject.toml` and `requirements.txt`
-- ✅ Created `common/console.py` with Rich Console factory, theme, and configuration functions
-- ✅ Updated `common/__init__.py` to export console functions
-- ✅ Updated `reporting/base.py` with optional `console` parameter and `console` property
-- ✅ Updated `reporting/cycle_reporter.py` with Rich Panel, Table, Tree, and Rule components
-- ✅ Updated `reporting/namespace_reporter.py` with Rich Panel and Table components
-- ✅ Updated `reporting/file_reporter.py` with Rich Panel and Table components
-- ✅ Added `--no-color` flag to `asmdea.py` CLI with `configure_console()` call
-- ✅ All 50 tests pass
-- ✅ Type checking passes for Rich implementation files (no new mypy errors)
-- ✅ Manual verification confirms Rich output displays correctly with colors, panels, and tables
-- ✅ Updated CLAUDE.md project structure documentation
-
-The Rich console implementation is fully functional and ready for use.
-

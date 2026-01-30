@@ -90,13 +90,14 @@ asmdea analyse --help
 ```
 AsmDEA/
 ├── common/              # Shared utilities
+│   ├── asmdef_dict.py   # Dictionary utilities
+│   ├── console.py       # Rich console configuration
 │   ├── constants.py     # Project constants
+│   ├── dictionary.py    # Asmdef dictionary builder
 │   ├── exceptions.py    # Custom exceptions
 │   ├── file_io.py       # JSON I/O operations
-│   ├── path_utils.py    # Path validation
-│   ├── asmdef_dict.py   # Dictionary utilities
-│   ├── script_runner.py # Subprocess execution
-│   └── logging_config.py # Centralized logging
+│   ├── logging_config.py # Centralized logging
+│   └── path_utils.py    # Path validation
 │
 ├── models/              # Data models
 │   ├── asmdef_entry.py  # Assembly definition model
@@ -104,10 +105,10 @@ AsmDEA/
 │   ├── cycle_report.py  # Cycle detection results
 │   └── namespace_analysis.py # Namespace analysis results
 │
-├── analysers/           # Business logic
-│   ├── cycle_analyser.py     # Circular dependency detection
-│   ├── namespace_analyser.py # Namespace compliance checking
-│   └── file_analyser.py      # File-to-assembly mapping
+├── analyzers/           # Business logic
+│   ├── cycle_analyzer.py     # Circular dependency detection
+│   ├── namespace_analyzer.py # Namespace compliance checking
+│   └── file_analyzer.py      # File-to-assembly mapping
 │
 ├── reporting/           # Output formatting
 │   ├── base.py          # Abstract reporter base class
@@ -163,7 +164,7 @@ AsmDEA/
 ┌─────────────────────────────────────────────────────────────┐
 │                  Analysis Layer                             │
 │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────┐  │
-│  │CycleAnalyser    │  │NamespaceAnalyser │  │FileAnalyser│ │
+│  │CycleAnalyzer    │  │NamespaceAnalyzer │  │FileAnalyzer│ │
 │  │                 │  │                  │  │           │  │
 │  │- Build graph    │  │- Extract NS      │  │- Scan .cs │  │
 │  │- Detect cycles  │  │- Validate match  │  │- Map files│  │
@@ -196,7 +197,7 @@ AsmDEA/
 Flow:
 1. User configures analysis (AnalysisConfig + logging)
 2. Data loaded from Unity project/JSON dictionary
-3. Analysers process data (cycles, namespaces, files)
+3. Analyzers process data (cycles, namespaces, files)
 4. Reporters format and output results (console + JSON)
 ```
 
@@ -207,7 +208,7 @@ Flow:
    - Scan for assembly definitions
    - Build dependency graph
    - Map C# files to assemblies
-   - Analyse namespace compliance
+   - Analyze namespace compliance
    - Detect circular dependencies
 3. **Output**: Console reports and JSON files
 
@@ -275,6 +276,7 @@ asmdea all --project-path ./Assets
 - `--detailed`: Include detailed dependency trees
 - `--allow-child-namespaces`: Allow child namespaces in validation
 - `--verbose`: Enable verbose logging
+- `--no-color`: Disable coloured output (plain text mode for CI/CD)
 - `--log-file PATH`: Write logs to file
 
 **Exit codes:**
@@ -404,66 +406,63 @@ asmdea --help
 # Command-specific help
 asmdea analyse --help
 asmdea detect-cycles --help
-python asmdef_cli.py validate-namespaces --help
-python asmdef_cli.py map-files --help
-python asmdef_cli.py build-dict --help
+asmdea validate-namespaces --help
+asmdea map-files --help
+asmdea build-dict --help
 ```
 
 ## API Reference
 
-### Core Analysers
+### Core Analyzers
 
-#### CycleAnalyser
+#### CycleAnalyzer
 
 Detects circular dependencies between assemblies.
 
 ```python
-from analysers import CycleAnalyser
+from analyzers import CycleAnalyzer
 
-analyser = CycleAnalyser(config)
-report = analyser.analyse(asmdef_dict)
-summary = analyser.get_summary()
+analyzer = CycleAnalyzer(asmdef_dict)
+report = analyzer.analyze()
 ```
 
 **Methods:**
-- `analyse(asmdef_dict)`: Detect cycles and return CycleReport
-- `get_summary()`: Get CycleSummary with statistics
+- `analyze(max_depth)`: Detect cycles and return CycleReport
 - `detect_cycles()`: Return list of cycle paths
-- `build_dependency_graph()`: Build internal dependency graph
+- `_build_dependency_graph()`: Build internal dependency graph
+- `_build_dependency_tree()`: Generate visualization tree
 
-#### NamespaceAnalyser
+#### NamespaceAnalyzer
 
 Validates C# file namespaces against assembly root namespaces.
 
 ```python
-from analysers import NamespaceAnalyser
+from analyzers import NamespaceAnalyzer
 
-analyser = NamespaceAnalyser(config)
-updated_dict = analyser.analyse(asmdef_dict)
-report = analyser.generate_report()
+analyzer = NamespaceAnalyzer(asmdef_dict, root_path, allow_child_namespaces)
+report = analyzer.analyze()
 ```
 
 **Methods:**
-- `analyse(asmdef_dict)`: Analyse all assemblies, return updated dict
-- `analyse_assembly(guid, assembly_data)`: Analyse single assembly
-- `generate_report()`: Create NamespaceAnalysisReport
-- `extract_namespace(code)`: Extract namespace from C# code
+- `analyze()`: Analyze all assemblies, return NamespaceAnalysisReport
+- `analyze_assembly(guid, assembly_data)`: Analyze single assembly
+- `extract_namespace_from_file(file_path)`: Extract namespace from C# file (static)
+- `normalize_namespace(namespace)`: Normalize namespace for comparison (static)
 
-#### FileAnalyser
+#### FileAnalyzer
 
 Maps C# files to their owning assemblies.
 
 ```python
-from analysers import FileAnalyser
+from analyzers import FileAnalyzer
 
-analyser = FileAnalyser(config)
-updated_dict = analyser.analyse(asmdef_dict)
-stats = analyser.get_stats()
+analyzer = FileAnalyzer(asmdef_dict, root_path)
+updated_dict = analyzer.analyze()
 ```
 
 **Methods:**
-- `analyse(asmdef_dict)`: Scan and map files, return updated dict
-- `get_stats()`: Get file mapping statistics
+- `analyze()`: Scan project and assign files to assemblies, return updated dict
+- `_build_path_to_guid_mapping()`: Map directories to assembly GUIDs
 - `find_owning_assembly(file_path)`: Find assembly for specific file
 
 ### Data Models
@@ -474,7 +473,7 @@ Contains cycle detection results.
 
 **Properties:**
 - `total_cycles`: Number of cycles found
-- `total_nodes`: Number of assemblies analysed
+- `total_nodes`: Number of assemblies analyzed
 - `affected_nodes`: Set of assemblies in cycles
 - `cycles`: List of CycleDetail objects
 
@@ -483,7 +482,7 @@ Contains cycle detection results.
 Contains namespace validation results.
 
 **Properties:**
-- `total_assemblies`: Number of assemblies analysed
+- `total_assemblies`: Number of assemblies analyzed
 - `total_files`: Number of C# files checked
 - `total_matched`: Files with matching namespaces
 - `total_mismatched`: Files with incorrect namespaces
@@ -501,30 +500,30 @@ Contains namespace validation results.
 pytest
 
 # Run with coverage
-pytest --cov=common --cov=models --cov=analysers --cov-report=term-missing
+pytest --cov=common --cov=models --cov=analyzers --cov-report=term-missing
 
 # Run specific test file
-pytest tests/unit/test_analysers.py -v
+pytest tests/unit/test_analyzers.py -v
 ```
 
 ### Code Quality
 
 ```bash
 # Type checking
-mypy common/ models/ analysers/ --explicit-package-bases
+mypy common/ models/ analyzers/ --explicit-package-bases
 
 # Code formatting
-black common/ models/ analysers/ reporting/
+black common/ models/ analyzers/ reporting/
 
 # Linting
-ruff check common/ models/ analysers/ reporting/ --fix
+ruff check common/ models/ analyzers/ reporting/ --fix
 ```
 
 ### Project Structure
 
 - **common/**: Shared utilities and configurations
 - **models/**: Data classes and configurations
-- **analysers/**: Core analysis logic (business layer)
+- **analyzers/**: Core analysis logic (business layer)
 - **reporting/**: Output formatting and presentation
 - **tests/**: Unit and integration tests
 

@@ -1,3 +1,0 @@
-[console_scripts]
-asmdea = asmdea:main
-asmdef-cli = asmdea:main

@@ -31,7 +31,7 @@ try:
 except ImportError:
     pass
 
-from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
+from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
 from common import (
     configure_console,
     get_console,
@@ -251,8 +251,8 @@ def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
 
-    analyzer = CycleAnalyzer(asmdef_dict)
-    report = analyzer.analyze(max_depth=args.depth)
+    analyser = CycleAnalyser(asmdef_dict)
+    report = analyser.analyse(max_depth=args.depth)
 
     reporter = CycleReporter(verbose=args.verbose, detailed=args.detailed, depth=args.depth)
     reporter.print_console_report(report)
@@ -276,8 +276,8 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
 
-    analyzer = FileAnalyzer(asmdef_dict, args.project_path)
-    result = analyzer.analyze()
+    analyser = FileAnalyser(asmdef_dict, args.project_path)
+    result = analyser.analyse()
 
     reporter = FileAnalysisReporter(verbose=args.verbose)
     reporter.print_console_report(result)
@@ -302,8 +302,8 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
 
-    analyzer = NamespaceAnalyzer(asmdef_dict, args.project_path, args.allow_child_namespaces)
-    report = analyzer.analyze()
+    analyser = NamespaceAnalyser(asmdef_dict, args.project_path, args.allow_child_namespaces)
+    report = analyser.analyse()
 
     reporter = NamespaceReporter(verbose=args.verbose, allow_child_namespaces=args.allow_child_namespaces)
     reporter.print_console_report(report)

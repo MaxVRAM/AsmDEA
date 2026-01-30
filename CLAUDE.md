@@ -15,10 +15,10 @@ Analyze Unity projects to detect circular dependencies between Assembly Definiti
 ```
 AsmDEA/
 ├── asmdea.py                  # CLI entry point
-├── analyzers/                  # Analyzer classes
-│   ├── cycle_analyzer.py      # Circular dependency detection
-│   ├── file_analyzer.py       # C# file to assembly mapping
-│   └── namespace_analyzer.py  # Namespace compliance checking
+├── analysers/                  # Analyser classes
+│   ├── cycle_analyser.py      # Circular dependency detection
+│   ├── file_analyser.py       # C# file to assembly mapping
+│   └── namespace_analyser.py  # Namespace compliance checking
 ├── common/                     # Shared utilities
 │   ├── asmdef_dict.py         # Dictionary manipulation helpers
 │   ├── console.py             # Rich console configuration
@@ -46,15 +46,15 @@ AsmDEA/
 
 ## Module Responsibilities
 
-### Core Analyzers (`analyzers/`)
+### Core Analysers (`analysers/`)
 
-#### `cycle_analyzer.py`
+#### `cycle_analyser.py`
 
 **Purpose:** Detect circular dependencies between assemblies  
-**Key Class:** `CycleAnalyzer`  
-**Constructor:** `CycleAnalyzer(asmdef_dict: dict)`  
+**Key Class:** `CycleAnalyser`  
+**Constructor:** `CycleAnalyser(asmdef_dict: dict)`  
 **Methods:**
-- `analyze() -> CycleReport` - Detect all cycles in dependency graph
+- `analyse() -> CycleReport` - Detect all cycles in dependency graph
 - `_build_dependency_graph()` - Create graph from assembly references
 - `detect_cycles()` - Find all cycles in the dependency graph
 - `_build_dependency_tree()` - Generate visualization tree
@@ -62,26 +62,26 @@ AsmDEA/
 **Input:** Assembly dictionary (GUID → assembly data)  
 **Output:** `CycleReport` with cycles, severity, and dependency trees
 
-#### `file_analyzer.py`
+#### `file_analyser.py`
 
 **Purpose:** Map C# files to their owning assemblies  
-**Key Class:** `FileAnalyzer`  
-**Constructor:** `FileAnalyzer(asmdef_dict: dict, root_path: Path)`  
+**Key Class:** `FileAnalyser`  
+**Constructor:** `FileAnalyser(asmdef_dict: dict, root_path: Path)`  
 **Methods:**
-- `analyze() -> dict` - Scan project and assign files to assemblies
+- `analyse() -> dict` - Scan project and assign files to assemblies
 - `_build_path_to_guid_mapping()` - Map directories to assembly GUIDs
 - `find_owning_assembly()` - Determine which assembly owns a file
 
 **Input:** Unity project root directory  
 **Output:** Updated dictionary with `csFiles` arrays per assembly
 
-#### `namespace_analyzer.py`
+#### `namespace_analyser.py`
 
 **Purpose:** Validate C# file namespaces match assembly root namespaces  
-**Key Class:** `NamespaceAnalyzer`  
-**Constructor:** `NamespaceAnalyzer(asmdef_dict: dict, root_path: Path, allow_child_namespaces: bool)`  
+**Key Class:** `NamespaceAnalyser`  
+**Constructor:** `NamespaceAnalyser(asmdef_dict: dict, root_path: Path, allow_child_namespaces: bool)`  
 **Methods:**
-- `analyze() -> NamespaceAnalysis` - Check namespace compliance for all files
+- `analyse() -> NamespaceAnalysis` - Check namespace compliance for all files
 - `extract_namespace_from_file()` - Parse namespace declarations from C# (static)
 - `normalize_namespace()` - Normalize namespace for comparison (static)
 
@@ -319,3 +319,4 @@ All tasks completed successfully:
 - ✅ Updated CLAUDE.md project structure documentation
 
 The Rich console implementation is fully functional and ready for use.
+

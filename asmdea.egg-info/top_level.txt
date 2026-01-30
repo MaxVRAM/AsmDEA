@@ -1,7 +1,5 @@
-analysis
-analyzers
+analysers
 asmdea
 common
 models
 reporting
-utilities

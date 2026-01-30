@@ -1,4 +1,5 @@
 python-dotenv>=1.0.0
+rich>=13.0.0
 
 [dev]
 mypy>=1.8.0

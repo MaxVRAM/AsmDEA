@@ -1,11 +1,11 @@
-"""Cycle detection analyzer - detects circular dependencies in assembly references.
+"""Cycle detection analyser - detects circular dependencies in assembly references.
 
-Analyzes Unity Assembly Definition dependencies to find circular reference chains
+Analyses Unity Assembly Definition dependencies to find circular reference chains
 that can cause compilation issues. Uses depth-first search with state tracking
 to detect cycles in the dependency graph.
 
 Key classes:
-    - CycleAnalyzer: Main analyzer for detecting dependency cycles
+    - CycleAnalyser: Main analyser for detecting dependency cycles
 
 Features:
     - Builds dependency graph from assembly references
@@ -14,12 +14,12 @@ Features:
     - Builds dependency trees showing cycle context
 
 Usage:
-    from analyzers import CycleAnalyzer
+    from analysers import CycleAnalyser
     from models import AnalysisConfig
 
     config = AnalysisConfig(dict_file="asmdef_dictionary.json")
-    analyzer = CycleAnalyzer(config)
-    report = analyzer.analyze(asmdef_dict)
+    analyser = CycleAnalyser(config)
+    report = analyser.analyse(asmdef_dict)
     print(f"Found {report.total_cycles} cycles")
 """
 
@@ -29,11 +29,11 @@ from typing import Any
 from models import CycleDetails, CyclePath, CycleReport, CycleSummary
 
 
-class CycleAnalyzer:
-    """Analyzes assembly dependencies to detect cycles."""
+class CycleAnalyser:
+    """Analyses assembly dependencies to detect cycles."""
 
     def __init__(self, asmdef_dict: dict[str, Any]):
-        """Initialize cycle analyzer.
+        """Initialize cycle analyser.
 
         Args:
             asmdef_dict: Dictionary of assembly definitions keyed by GUID
@@ -142,7 +142,7 @@ class CycleAnalyzer:
 
         return build_node(root, 0, set())
 
-    def analyze(self, max_depth: int = 3) -> CycleReport:
+    def analyse(self, max_depth: int = 3) -> CycleReport:
         """Perform complete cycle analysis.
 
         Args:

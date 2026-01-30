@@ -1,4 +1,4 @@
-# AsmDEA: Assembly Definition Enforcement Agency
+# Assembly Definition Enforcement Agency (AsmDEA)
 
 A Python toolkit for analysing Unity Assembly Definition (`.asmdef`) files, detecting circular dependencies, validating namespace compliance, and mapping C# files to assemblies.
 
@@ -105,10 +105,10 @@ AsmDEA/
 │   ├── cycle_report.py  # Cycle detection results
 │   └── namespace_analysis.py # Namespace analysis results
 │
-├── analyzers/           # Business logic
-│   ├── cycle_analyzer.py     # Circular dependency detection
-│   ├── namespace_analyzer.py # Namespace compliance checking
-│   └── file_analyzer.py      # File-to-assembly mapping
+├── analysers/           # Business logic
+│   ├── cycle_analyser.py     # Circular dependency detection
+│   ├── namespace_analyser.py # Namespace compliance checking
+│   └── file_analyser.py      # File-to-assembly mapping
 │
 ├── reporting/           # Output formatting
 │   ├── base.py          # Abstract reporter base class
@@ -123,83 +123,25 @@ AsmDEA/
 
 ### Architecture Diagram
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        AsmDEA                               │
-│                  Unity Asmdef Analysis                      │
-└─────────────────────────────────────────────────────────────┘
+The system follows a **layered architecture** with clear separation of concerns:
 
-┌─────────────────────────────────────────────────────────────┐
-│                      Entry Point                            │
-│                   (User's Python Script)                    │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Configuration Layer                         │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  models/config.py                                  │    │
-│  │  - AnalysisConfig (paths, options)                 │    │
-│  └────────────────────────────────────────────────────┘    │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  common/logging_config.py                          │    │
-│  │  - setup_logging(), get_logger()                   │    │
-│  └────────────────────────────────────────────────────┘    │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Data Layer                                │
-│  ┌─────────────────────┐  ┌──────────────────────┐        │
-│  │ common/file_io.py   │  │ models/asmdef_entry.py│       │
-│  │ - load/save JSON    │  │ - Assembly Definition │       │
-│  └─────────────────────┘  └──────────────────────┘        │
-│  ┌─────────────────────────────────────────────────┐       │
-│  │ common/asmdef_dict.py                           │       │
-│  │ - Dictionary manipulation utilities              │       │
-│  └─────────────────────────────────────────────────┘       │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Analysis Layer                             │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌──────────┐  │
-│  │CycleAnalyzer    │  │NamespaceAnalyzer │  │FileAnalyzer│ │
-│  │                 │  │                  │  │           │  │
-│  │- Build graph    │  │- Extract NS      │  │- Scan .cs │  │
-│  │- Detect cycles  │  │- Validate match  │  │- Map files│  │
-│  │- Build trees    │  │- Child NS check  │  │- Find owner│ │
-│  └─────────────────┘  └──────────────────┘  └──────────┘  │
-│           │                    │                   │        │
-│           └────────────────────┴───────────────────┘        │
-│                              │                              │
-└──────────────────────────────┼──────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Reporting Layer                          │
-│  ┌──────────────────┐  ┌─────────────────┐  ┌──────────┐  │
-│  │ CycleReporter    │  │NamespaceReporter│  │FileReporter│ │
-│  │                  │  │                 │  │           │  │
-│  │- Console format  │  │- Console format │  │- Console  │  │
-│  │- JSON export     │  │- JSON export    │  │- JSON     │  │
-│  │- Severity marks  │  │- Problem detect │  │- Stats    │  │
-│  └──────────────────┘  └─────────────────┘  └──────────┘  │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-                 ▼
-         ┌───────────────┐
-         │    Output     │
-         │ - Console     │
-         │ - JSON files  │
-         │ - Log files   │
-         └───────────────┘
+<img src="docs/asmdea-architecture.png" alt="Architecture Diagram" width="800">
 
-Flow:
-1. User configures analysis (AnalysisConfig + logging)
-2. Data loaded from Unity project/JSON dictionary
-3. Analyzers process data (cycles, namespaces, files)
-4. Reporters format and output results (console + JSON)
-```
+### Layer Responsibilities
+
+| Layer | Purpose | Key Components |
+| ----- | ------- | -------------- |
+| **CLI** | Command parsing, orchestration | `asmdea.py` - argparse-based CLI with subcommands |
+| **Analysers** | Core business logic | `FileAnalyser`, `NamespaceAnalyser`, `CycleAnalyser` |
+| **Reporting** | Output formatting | `BaseReporter` (abstract), specialised reporters |
+| **Models** | Data structures | Pydantic-style dataclasses for type safety |
+| **Common** | Shared utilities | File I/O, logging, console output, path handling |
+
+**Key Design Patterns:**
+
+- **Template Method**: `BaseReporter` defines the reporting interface; subclasses implement specifics
+- **Dependency Injection**: Analysers receive configuration and data via constructor
+- **Builder Pattern**: `build_asmdef_dictionary()` constructs the assembly graph from disk
 
 ### Data Flow
 
@@ -208,7 +150,7 @@ Flow:
    - Scan for assembly definitions
    - Build dependency graph
    - Map C# files to assemblies
-   - Analyze namespace compliance
+   - Analyse namespace compliance
    - Detect circular dependencies
 3. **Output**: Console reports and JSON files
 
@@ -413,55 +355,55 @@ asmdea build-dict --help
 
 ## API Reference
 
-### Core Analyzers
+### Core Analysers
 
-#### CycleAnalyzer
+#### CycleAnalyser
 
 Detects circular dependencies between assemblies.
 
 ```python
-from analyzers import CycleAnalyzer
+from analysers import CycleAnalyser
 
-analyzer = CycleAnalyzer(asmdef_dict)
-report = analyzer.analyze()
+analyser = CycleAnalyser(asmdef_dict)
+report = analyser.analyse()
 ```
 
 **Methods:**
-- `analyze(max_depth)`: Detect cycles and return CycleReport
+- `analyse(max_depth)`: Detect cycles and return CycleReport
 - `detect_cycles()`: Return list of cycle paths
 - `_build_dependency_graph()`: Build internal dependency graph
 - `_build_dependency_tree()`: Generate visualization tree
 
-#### NamespaceAnalyzer
+#### NamespaceAnalyser
 
 Validates C# file namespaces against assembly root namespaces.
 
 ```python
-from analyzers import NamespaceAnalyzer
+from analysers import NamespaceAnalyser
 
-analyzer = NamespaceAnalyzer(asmdef_dict, root_path, allow_child_namespaces)
-report = analyzer.analyze()
+analyser = NamespaceAnalyser(asmdef_dict, root_path, allow_child_namespaces)
+report = analyser.analyse()
 ```
 
 **Methods:**
-- `analyze()`: Analyze all assemblies, return NamespaceAnalysisReport
-- `analyze_assembly(guid, assembly_data)`: Analyze single assembly
+- `analyse()`: Analyse all assemblies, return NamespaceAnalysisReport
+- `analyse_assembly(guid, assembly_data)`: Analyse single assembly
 - `extract_namespace_from_file(file_path)`: Extract namespace from C# file (static)
 - `normalize_namespace(namespace)`: Normalize namespace for comparison (static)
 
-#### FileAnalyzer
+#### FileAnalyser
 
 Maps C# files to their owning assemblies.
 
 ```python
-from analyzers import FileAnalyzer
+from analysers import FileAnalyser
 
-analyzer = FileAnalyzer(asmdef_dict, root_path)
-updated_dict = analyzer.analyze()
+analyser = FileAnalyser(asmdef_dict, root_path)
+updated_dict = analyser.analyse()
 ```
 
 **Methods:**
-- `analyze()`: Scan project and assign files to assemblies, return updated dict
+- `analyse()`: Scan project and assign files to assemblies, return updated dict
 - `_build_path_to_guid_mapping()`: Map directories to assembly GUIDs
 - `find_owning_assembly(file_path)`: Find assembly for specific file
 
@@ -473,7 +415,7 @@ Contains cycle detection results.
 
 **Properties:**
 - `total_cycles`: Number of cycles found
-- `total_nodes`: Number of assemblies analyzed
+- `total_nodes`: Number of assemblies analysed
 - `affected_nodes`: Set of assemblies in cycles
 - `cycles`: List of CycleDetail objects
 
@@ -482,7 +424,7 @@ Contains cycle detection results.
 Contains namespace validation results.
 
 **Properties:**
-- `total_assemblies`: Number of assemblies analyzed
+- `total_assemblies`: Number of assemblies analysed
 - `total_files`: Number of C# files checked
 - `total_matched`: Files with matching namespaces
 - `total_mismatched`: Files with incorrect namespaces
@@ -500,30 +442,30 @@ Contains namespace validation results.
 pytest
 
 # Run with coverage
-pytest --cov=common --cov=models --cov=analyzers --cov-report=term-missing
+pytest --cov=common --cov=models --cov=analysers --cov-report=term-missing
 
 # Run specific test file
-pytest tests/unit/test_analyzers.py -v
+pytest tests/unit/test_analysers.py -v
 ```
 
 ### Code Quality
 
 ```bash
 # Type checking
-mypy common/ models/ analyzers/ --explicit-package-bases
+mypy common/ models/ analysers/ --explicit-package-bases
 
 # Code formatting
-black common/ models/ analyzers/ reporting/
+black common/ models/ analysers/ reporting/
 
 # Linting
-ruff check common/ models/ analyzers/ reporting/ --fix
+ruff check common/ models/ analysers/ reporting/ --fix
 ```
 
 ### Project Structure
 
 - **common/**: Shared utilities and configurations
 - **models/**: Data classes and configurations
-- **analyzers/**: Core analysis logic (business layer)
+- **analysers/**: Core analysis logic (business layer)
 - **reporting/**: Output formatting and presentation
 - **tests/**: Unit and integration tests
 
@@ -534,11 +476,3 @@ ruff check common/ models/ analyzers/ reporting/ --fix
 3. Follow existing code style (black + ruff)
 4. Update documentation
 5. Ensure all tests pass
-
-## License
-
-[Add license information]
-
-## Support
-
-[Add support/contact information]

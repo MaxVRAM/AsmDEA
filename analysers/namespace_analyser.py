@@ -1,11 +1,11 @@
 """Namespace analysis - validates C# namespace declarations against assembly definitions.
 
-Analyzes C# files to check if their namespace declarations match or comply with
+Analyses C# files to check if their namespace declarations match or comply with
 the rootNamespace defined in their owning Assembly Definition. Supports both
 traditional namespace syntax and C# 10 file-scoped namespaces.
 
 Key classes:
-    - NamespaceAnalyzer: Main analyzer class for namespace compliance checking
+    - NamespaceAnalyser: Main analyser class for namespace compliance checking
 
 Features:
     - Extracts namespace declarations from C# source files
@@ -14,12 +14,12 @@ Features:
     - Generates detailed reports with file-level statistics
 
 Usage:
-    from analyzers import NamespaceAnalyzer
+    from analysers import NamespaceAnalyser
     from models import AnalysisConfig
 
     config = AnalysisConfig(root_path="/path/to/unity")
-    analyzer = NamespaceAnalyzer(config)
-    report = analyzer.analyze(asmdef_dict)
+    analyser = NamespaceAnalyser(config)
+    report = analyser.analyse(asmdef_dict)
 """
 
 import re
@@ -29,13 +29,11 @@ from typing import Any
 from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 
-class NamespaceAnalyzer:
-    """Analyzes C# file namespaces within assemblies."""
+class NamespaceAnalyser:
+    """Analyses C# file namespaces within assemblies."""
 
-    def __init__(
-        self, asmdef_dict: dict[str, Any], root_path: Path, allow_child_namespaces: bool = True
-    ):
-        """Initialize namespace analyzer.
+    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path, allow_child_namespaces: bool = True):
+        """Initialize namespace analyser.
 
         Args:
             asmdef_dict: Dictionary of assembly definitions
@@ -113,8 +111,8 @@ class NamespaceAnalyzer:
             return False
         return namespace.startswith(root_namespace + ".")
 
-    def analyze_assembly(self, guid: str, assembly_data: dict[str, Any]) -> AssemblyNamespaceStats:
-        """Analyze namespaces for a single assembly.
+    def analyse_assembly(self, guid: str, assembly_data: dict[str, Any]) -> AssemblyNamespaceStats:
+        """Analyse namespaces for a single assembly.
 
         Args:
             guid: Assembly GUID
@@ -159,9 +157,7 @@ class NamespaceAnalyzer:
             if primary_namespace == root_namespace:
                 stats.matched_files += 1
                 stats.matched_file_paths.append(file_path)
-            elif self.allow_child_namespaces and self.is_child_namespace(
-                primary_namespace, root_namespace
-            ):
+            elif self.allow_child_namespaces and self.is_child_namespace(primary_namespace, root_namespace):
                 stats.child_namespace_files += 1
                 stats.child_namespace_paths.append(file_path)
             else:
@@ -173,7 +169,7 @@ class NamespaceAnalyzer:
 
         return stats
 
-    def analyze(self) -> NamespaceAnalysisReport:
+    def analyse(self) -> NamespaceAnalysisReport:
         """Perform complete namespace analysis.
 
         Returns:
@@ -184,7 +180,7 @@ class NamespaceAnalyzer:
         report = NamespaceAnalysisReport(allow_child_namespaces=self.allow_child_namespaces)
 
         for guid, assembly_data in assemblies.items():
-            stats = self.analyze_assembly(guid, assembly_data)
+            stats = self.analyse_assembly(guid, assembly_data)
             report.assembly_stats[guid] = stats
 
             # Update totals

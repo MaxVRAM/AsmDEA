@@ -14,13 +14,8 @@ Analyze Unity projects to detect circular dependencies between Assembly Definiti
 
 ```
 AsmDEA/
-├── asmdef_cli.py              # CLI entry point (IN PROGRESS)
-├── analysis/                   # Legacy analysis scripts (will be deprecated)
-│   ├── cycles.py              # Standalone cycle detection
-│   ├── dictionary.py          # Asmdef dictionary builder
-│   ├── files.py               # File ownership analysis
-│   └── namespaces.py          # Namespace validation
-├── analyzers/                  # Refactored analyzer classes
+├── asmdea.py                  # CLI entry point
+├── analyzers/                  # Analyzer classes
 │   ├── cycle_analyzer.py      # Circular dependency detection
 │   ├── file_analyzer.py       # C# file to assembly mapping
 │   └── namespace_analyzer.py  # Namespace compliance checking
@@ -28,12 +23,16 @@ AsmDEA/
 │   ├── asmdef_dict.py         # Dictionary manipulation helpers
 │   ├── console.py             # Rich console configuration
 │   ├── constants.py           # Project-wide constants
+│   ├── dictionary.py          # Asmdef dictionary builder
+│   ├── exceptions.py          # Custom exception classes
 │   ├── file_io.py             # JSON load/save utilities
-│   └── logging_config.py      # Centralized logging setup
+│   ├── logging_config.py      # Centralized logging setup
+│   └── path_utils.py          # Path validation utilities
 ├── models/                     # Data models
 │   ├── asmdef_entry.py        # Assembly definition data class
 │   ├── config.py              # Configuration dataclass
-│   └── report_models.py       # Report data structures
+│   ├── cycle_report.py        # Cycle detection results
+│   └── namespace_analysis.py  # Namespace validation results
 ├── reporting/                  # Output formatters
 │   ├── base.py                # Abstract reporter base class
 │   ├── cycle_reporter.py      # Cycle analysis output
@@ -57,7 +56,7 @@ AsmDEA/
 **Methods:**
 - `analyze() -> CycleReport` - Detect all cycles in dependency graph
 - `_build_dependency_graph()` - Create graph from assembly references
-- `_detect_cycles_dfs()` - Depth-first search for cycles
+- `detect_cycles()` - Find all cycles in the dependency graph
 - `_build_dependency_tree()` - Generate visualization tree
 
 **Input:** Assembly dictionary (GUID → assembly data)  
@@ -70,9 +69,8 @@ AsmDEA/
 **Constructor:** `FileAnalyzer(asmdef_dict: dict, root_path: Path)`  
 **Methods:**
 - `analyze() -> dict` - Scan project and assign files to assemblies
-- `get_stats() -> dict` - Return file mapping statistics
 - `_build_path_to_guid_mapping()` - Map directories to assembly GUIDs
-- `_find_owning_assembly()` - Determine which assembly owns a file
+- `find_owning_assembly()` - Determine which assembly owns a file
 
 **Input:** Unity project root directory  
 **Output:** Updated dictionary with `csFiles` arrays per assembly
@@ -83,13 +81,12 @@ AsmDEA/
 **Key Class:** `NamespaceAnalyzer`  
 **Constructor:** `NamespaceAnalyzer(asmdef_dict: dict, root_path: Path, allow_child_namespaces: bool)`  
 **Methods:**
-- `analyze() -> dict` - Check namespace compliance for all files
-- `get_problems() -> dict` - Return assemblies with namespace violations
-- `extract_namespace_from_file()` - Parse namespace declarations from C#
-- `_validate_namespace()` - Check if namespace matches assembly root
+- `analyze() -> NamespaceAnalysis` - Check namespace compliance for all files
+- `extract_namespace_from_file()` - Parse namespace declarations from C# (static)
+- `normalize_namespace()` - Normalize namespace for comparison (static)
 
 **Input:** Assembly dictionary with file mappings  
-**Output:** Updated dictionary with namespace analysis, list of violations
+**Output:** `NamespaceAnalysis` dataclass with results and violations
 
 ---
 
@@ -193,39 +190,15 @@ AsmDEA/
 - `allow_child_namespaces: bool` - Namespace validation mode
 - `verbose: bool` - Detailed logging flag
 
-#### `report_models.py`
+#### `cycle_report.py`
 
-**Classes:**
-- `CycleReport` - Cycle detection results
-- `FileReport` - File mapping results  
-- `NamespaceReport` - Namespace validation results
+**Class:** `CycleReport`  
+**Purpose:** Cycle detection results with cycles list, severity, and dependency trees
 
----
+#### `namespace_analysis.py`
 
-### Legacy Scripts (`analysis/`)
-
-**Status:** These scripts are functional standalone utilities but are being superseded by the refactored `analyzers/` package and unified CLI.
-
-#### `dictionary.py`
-
-**Purpose:** Build initial assembly dictionary from Unity project  
-**Function:** `build_asmdef_dictionary(root_path) -> dict`  
-**Usage:** Scans for `.asmdef` files, extracts GUIDs from `.meta` files, builds dictionary
-
-#### `cycles.py`
-
-**Purpose:** Standalone cycle detection script  
-**Usage:** `python analysis/cycles.py --file asmdef_dictionary.json`
-
-#### `files.py`
-
-**Purpose:** Standalone file mapping script  
-**Usage:** `python analysis/files.py --file asmdef_dictionary.json --root ./Assets`
-
-#### `namespaces.py`
-
-**Purpose:** Standalone namespace validation script  
-**Usage:** `python analysis/namespaces.py --file asmdef_dictionary.json --root ./Assets`
+**Class:** `NamespaceAnalysis`  
+**Purpose:** Namespace validation results with violations and statistics
 
 ---
 
@@ -299,9 +272,7 @@ All reports are generated in `./reports/` directory:
 
 - `asmdef_dictionary.json` - Assembly definitions with metadata
 - `cycle_report.json` - Detailed cycle detection results
-- `cycle_report_summary.json` - Cycle statistics summary
-- `namespace_validation.json` - Namespace compliance issues (if any)
-- `file_mapping.json` - C# file to assembly assignments
+- `namespace_report.json` - Namespace compliance issues (if any)
 
 ---
 

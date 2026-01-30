@@ -31,7 +31,6 @@ try:
 except ImportError:
     pass
 
-from common.dictionary import build_asmdef_dictionary
 from analyzers import CycleAnalyzer, FileAnalyzer, NamespaceAnalyzer
 from common import (
     configure_console,
@@ -45,12 +44,21 @@ from common import (
     save_json_report,
     setup_logging,
 )
+from common.dictionary import build_asmdef_dictionary
 from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter
 
 
 def get_env_or_default(key: str, default: str) -> str:
     """Get environment variable or return default."""
     return os.environ.get(key, default)
+
+
+def get_env_bool(key: str, default: bool) -> bool:
+    """Get environment variable as boolean."""
+    value = os.environ.get(key)
+    if value is None:
+        return default
+    return value.lower() in ("true", "1", "yes", "on")
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -66,17 +74,20 @@ Examples:
   asmdea validate-namespaces --project-path ./Assets
 
 Environment Variables (from .env file):
-  ROOT_PATH    - Default project path
-  OUTPUT_PATH  - Default output directory (default: ./reports)
-  DICT_FILE    - Default dictionary file path
-  LOG_LEVEL    - Logging level (DEBUG/INFO/WARNING/ERROR)
+  ROOT_PATH              - Default project path
+  OUTPUT_PATH            - Default output directory (default: ./reports)
+  DICT_FILE              - Default dictionary file path
+  ALLOW_CHILD_NAMESPACES - Allow child namespaces (true/false, default: true)
+  DETAILED               - Show detailed dependency trees (true/false, default: false)
+  DEPTH                  - Max depth for dependency tree visualization (default: 2)
+  LOG_LEVEL              - Logging level (DEBUG/INFO/WARNING/ERROR)
         """,
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument(
         "--no-color",
         action="store_true",
-        help="Disable colored output (plain text mode)",
+        help="Disable coloured output (plain text mode)",
     )
     parser.add_argument(
         "--log-level",
@@ -121,7 +132,7 @@ Environment Variables (from .env file):
     analyze.add_argument(
         "--allow-child-namespaces",
         action="store_true",
-        default=True,
+        default=get_env_bool("ALLOW_CHILD_NAMESPACES", True),
         help="Allow child namespaces (default: True)",
     )
     analyze.add_argument(
@@ -129,6 +140,18 @@ Environment Variables (from .env file):
         dest="allow_child_namespaces",
         action="store_false",
         help="Require exact namespace matches",
+    )
+    analyze.add_argument(
+        "--detailed",
+        action="store_true",
+        default=get_env_bool("DETAILED", False),
+        help="Show detailed dependency trees",
+    )
+    analyze.add_argument(
+        "--depth",
+        type=int,
+        default=int(get_env_or_default("DEPTH", "2")),
+        help="Maximum depth for dependency tree visualization (default: 2)",
     )
 
     # build-dict command
@@ -147,8 +170,14 @@ Environment Variables (from .env file):
     cycles.add_argument(
         "--detailed",
         action="store_true",
-        default=False,
+        default=get_env_bool("DETAILED", False),
         help="Show detailed dependency trees",
+    )
+    cycles.add_argument(
+        "--depth",
+        type=int,
+        default=int(get_env_or_default("DEPTH", "2")),
+        help="Maximum depth for dependency tree visualization (default: 2)",
     )
 
     # map-files command
@@ -167,7 +196,7 @@ Environment Variables (from .env file):
     ns.add_argument(
         "--allow-child-namespaces",
         action="store_true",
-        default=True,
+        default=get_env_bool("ALLOW_CHILD_NAMESPACES", True),
         help="Allow child namespaces (default: True)",
     )
     ns.add_argument(
@@ -223,9 +252,9 @@ def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
     asmdef_dict = load_asmdef_dict(args.dict_file)
 
     analyzer = CycleAnalyzer(asmdef_dict)
-    report = analyzer.analyze()
+    report = analyzer.analyze(max_depth=args.depth)
 
-    reporter = CycleReporter(verbose=args.verbose)
+    reporter = CycleReporter(verbose=args.verbose, detailed=args.detailed, depth=args.depth)
     reporter.print_console_report(report)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

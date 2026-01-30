@@ -40,9 +40,6 @@ AsmDEA/
 │   ├── file_reporter.py       # File mapping output
 │   └── namespace_reporter.py  # Namespace validation output
 ├── tests/                      # Test suite (50 tests, 77% coverage)
-├── utilities/                  # Additional tools
-│   ├── code_line_counter.py   # Code metrics calculator
-│   └── script_flattener.py    # Legacy utility
 └── reports/                    # Generated analysis reports (JSON)
 ```
 

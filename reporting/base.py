@@ -46,14 +46,18 @@ class BaseReporter(ABC):
     Provides common functionality for console and JSON reporting.
     """
 
-    def __init__(self, verbose: bool = False, console: Console | None = None):
+    def __init__(self, verbose: bool = False, detailed: bool = False, depth: int = 3, console: Console | None = None):
         """Initialize reporter.
 
         Args:
             verbose: Enable verbose output
+            detailed: Enable detailed output (e.g., dependency trees)
+            depth: Maximum depth for dependency tree visualization
             console: Rich Console instance (uses shared instance if not provided)
         """
         self.verbose = verbose
+        self.detailed = detailed
+        self.depth = depth
         self._console = console
 
     @property

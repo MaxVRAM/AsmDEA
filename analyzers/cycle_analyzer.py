@@ -111,8 +111,42 @@ class CycleAnalyzer:
 
         return cycles
 
-    def analyze(self) -> CycleReport:
+    def _build_dependency_tree(self, root: str, cycle_nodes: set[str], max_depth: int = 2) -> dict[str, Any]:
+        """Build a dependency tree from a root node.
+
+        Args:
+            root: Root node to start from
+            cycle_nodes: Set of nodes that are part of the cycle
+            max_depth: Maximum depth to traverse
+
+        Returns:
+            Nested dictionary representing the dependency tree
+        """
+
+        def build_node(node: str, depth: int, visited: set[str]) -> dict[str, Any]:
+            in_cycle = node in cycle_nodes
+            result: dict[str, Any] = {
+                "name": node,
+                "inCycle": in_cycle,
+                "dependencies": [],
+            }
+
+            if depth >= max_depth or node in visited:
+                return result
+
+            visited = visited | {node}
+            for dep in self.graph.get(node, []):
+                result["dependencies"].append(build_node(dep, depth + 1, visited))
+
+            return result
+
+        return build_node(root, 0, set())
+
+    def analyze(self, max_depth: int = 3) -> CycleReport:
         """Perform complete cycle analysis.
+
+        Args:
+            max_depth: Maximum depth for dependency tree visualization
 
         Returns:
             CycleReport with detected cycles and metadata
@@ -128,11 +162,18 @@ class CycleAnalyzer:
             affected = cycle_nodes[:-1]  # Exclude duplicate last node
             all_affected_nodes.update(affected)
 
+            # Build dependency tree from the root node
+            root_node = cycle_nodes[0] if cycle_nodes else None
+            dependency_tree = None
+            if root_node:
+                dependency_tree = self._build_dependency_tree(root_node, set(affected), max_depth=max_depth)
+
             details = CycleDetails(
                 cycle_id=i,
                 cycle_path=cycle_path,
                 affected_assemblies=affected,
-                root_node=cycle_nodes[0] if cycle_nodes else None,
+                root_node=root_node,
+                dependency_tree=dependency_tree,
             )
             cycle_details.append(details)
 

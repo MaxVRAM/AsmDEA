@@ -44,8 +44,10 @@ from common import (
     save_json_report,
     setup_logging,
 )
+from common.backup import BackupManager
 from common.dictionary import build_asmdef_dictionary
-from reporting import CycleReporter, FileAnalysisReporter, NamespaceReporter
+from enforcement import DependencySorter, SortingStrategy
+from reporting import CycleReporter, EnforcementReporter, FileAnalysisReporter, NamespaceReporter
 
 
 def get_env_or_default(key: str, default: str) -> str:
@@ -206,6 +208,77 @@ Environment Variables (from .env file):
         help="Require exact namespace matches",
     )
 
+    # sort-deps command (enforcement)
+    sort_deps = subparsers.add_parser(
+        "sort-deps",
+        parents=[project_args],
+        help="Sort assembly dependencies using configurable strategies",
+    )
+    sort_deps.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply changes (default is dry-run/preview only)",
+    )
+    sort_deps.add_argument(
+        "--target",
+        "-t",
+        type=str,
+        help="Target a specific assembly by name",
+    )
+    sort_deps.add_argument(
+        "--filter",
+        "-f",
+        type=str,
+        help="Filter assemblies by glob pattern (e.g., '*.Tests')",
+    )
+    sort_deps.add_argument(
+        "--all",
+        action="store_true",
+        dest="all_assemblies",
+        help="Sort all assemblies in the project",
+    )
+    sort_deps.add_argument(
+        "--strategy",
+        "-s",
+        choices=["alpha-asc", "alpha-desc", "namespace", "unity-first", "unity-last"],
+        default="alpha-asc",
+        help="Sorting strategy (default: alpha-asc)",
+    )
+    sort_deps.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed before/after diffs",
+    )
+    sort_deps.add_argument(
+        "--backup-dir",
+        type=Path,
+        default=Path(".asmdea_backups"),
+        help="Directory for backup files (default: .asmdea_backups)",
+    )
+
+    # restore-backup command
+    restore = subparsers.add_parser(
+        "restore-backup",
+        help="Restore files from a previous backup",
+    )
+    restore.add_argument(
+        "--backup-dir",
+        type=Path,
+        default=Path(".asmdea_backups"),
+        help="Directory containing backups",
+    )
+    restore.add_argument(
+        "--backup-id",
+        type=str,
+        help="Specific backup ID to restore (default: most recent)",
+    )
+    restore.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_backups",
+        help="List available backups instead of restoring",
+    )
+
     return parser
 
 
@@ -316,6 +389,120 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
     return 1 if has_issues else 0
 
 
+def cmd_sort_deps(args: argparse.Namespace, logger: Any) -> int:
+    """Sort assembly dependencies."""
+    console = get_console()
+
+    if not args.dict_file.exists():
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
+        return 2
+
+    # Validate scope options
+    if not (args.target or args.filter or args.all_assemblies):
+        console.print("[error]No scope specified.[/]")
+        console.print("[muted]Use --target, --filter, or --all to specify assemblies to sort[/]")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+
+    # Map strategy string to enum
+    strategy_map = {
+        "alpha-asc": SortingStrategy.ALPHABETICAL_ASC,
+        "alpha-desc": SortingStrategy.ALPHABETICAL_DESC,
+        "namespace": SortingStrategy.NAMESPACE_GROUPED,
+        "unity-first": SortingStrategy.UNITY_FIRST,
+        "unity-last": SortingStrategy.UNITY_LAST,
+    }
+    strategy = strategy_map[args.strategy]
+
+    # Create sorter and execute
+    sorter = DependencySorter(
+        asmdef_dict,
+        strategy=strategy,
+        backup_dir=args.backup_dir,
+    )
+
+    result = sorter.sort(
+        apply=args.apply,
+        target=args.target,
+        filter_pattern=args.filter,
+        all_assemblies=args.all_assemblies,
+    )
+
+    # Report results
+    reporter = EnforcementReporter(
+        verbose=args.verbose,
+        detailed=getattr(args, "detailed", False),
+    )
+    reporter.print_console_report(result)
+
+    # Save report if output dir specified
+    if args.output_dir:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        reporter.save_json_report(result, args.output_dir / "sorting_report.json")
+
+    return 0 if result.success else 1
+
+
+def cmd_restore_backup(args: argparse.Namespace, logger: Any) -> int:
+    """Restore files from a backup."""
+    console = get_console()
+    manager = BackupManager(args.backup_dir)
+
+    # List backups mode
+    if args.list_backups:
+        backups = manager.list_backups()
+        if not backups:
+            console.print("[muted]No backups found.[/]")
+            return 0
+
+        from rich.table import Table
+
+        table = Table(title="Available Backups")
+        table.add_column("Backup ID", style="cyan")
+        table.add_column("Created", style="green")
+        table.add_column("Operation")
+        table.add_column("Files", justify="right")
+
+        for backup in backups:
+            table.add_row(
+                backup.backup_id,
+                backup.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                backup.operation,
+                str(backup.file_count),
+            )
+
+        console.print(table)
+        return 0
+
+    # Restore mode
+    if args.backup_id:
+        backup = manager.get_backup(args.backup_id)
+        if not backup:
+            console.print(f"[error]Backup not found:[/] {args.backup_id}")
+            return 1
+        backup_path = backup.path
+    else:
+        # Use most recent backup
+        backups = manager.list_backups()
+        if not backups:
+            console.print("[error]No backups found.[/]")
+            return 1
+        backup_path = backups[0].path
+        console.print(f"[muted]Restoring most recent backup:[/] {backups[0].backup_id}")
+
+    try:
+        restored = manager.restore_backup(backup_path)
+        console.print(f"[green]✓[/] Restored {len(restored)} files")
+        for path in restored:
+            console.print(f"  [path]{path}[/]")
+        return 0
+    except Exception as e:
+        console.print(f"[error]Restore failed:[/] {e}")
+        return 1
+
+
 def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     """Run complete analysis pipeline."""
     exit_code = 0
@@ -371,6 +558,8 @@ def main() -> int:
         "detect-cycles": cmd_detect_cycles,
         "map-files": cmd_map_files,
         "validate-namespaces": cmd_validate_namespaces,
+        "sort-deps": cmd_sort_deps,
+        "restore-backup": cmd_restore_backup,
     }
 
     try:

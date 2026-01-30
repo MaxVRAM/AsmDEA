@@ -14,6 +14,11 @@ from .namespace_analysis import (
     NamespaceAnalysisReport,
     NamespaceMatch,
 )
+from .sorting_result import (
+    DependencyDiff,
+    SortingChange,
+    SortingResult,
+)
 
 __all__ = [
     # Assembly entry
@@ -30,4 +35,8 @@ __all__ = [
     "CycleDetails",
     "CycleReport",
     "CycleSummary",
+    # Sorting
+    "DependencyDiff",
+    "SortingChange",
+    "SortingResult",
 ]

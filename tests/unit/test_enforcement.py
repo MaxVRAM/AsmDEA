@@ -2,22 +2,22 @@
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from enforcement.base import BaseEnforcer, EnforcementMode, EnforcementResult
+from enforcement.dependency_sorter import DependencySorter
 from enforcement.sorting_strategies import (
-    SortingStrategy,
     AlphabeticalStrategy,
-    NamespaceGroupedStrategy,
-    UnityPriorityStrategy,
-    CustomPriorityStrategy,
-    SortedReference,
     BaseSortingStrategy,
+    CustomPriorityStrategy,
+    NamespaceGroupedStrategy,
+    SortedReference,
+    SortingStrategy,
+    UnityPriorityStrategy,
     get_strategy,
 )
-from enforcement.dependency_sorter import DependencySorter
 from models.sorting_result import DependencyDiff, SortingChange, SortingResult
 
 

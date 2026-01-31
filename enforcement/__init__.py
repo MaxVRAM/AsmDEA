@@ -19,14 +19,14 @@ Usage:
 """
 
 from .base import BaseEnforcer, EnforcementMode
-from .sorting_strategies import (
-    SortingStrategy,
-    AlphabeticalStrategy,
-    NamespaceGroupedStrategy,
-    UnityPriorityStrategy,
-    CustomPriorityStrategy,
-)
 from .dependency_sorter import DependencySorter
+from .sorting_strategies import (
+    AlphabeticalStrategy,
+    CustomPriorityStrategy,
+    NamespaceGroupedStrategy,
+    SortingStrategy,
+    UnityPriorityStrategy,
+)
 
 __all__ = [
     "BaseEnforcer",

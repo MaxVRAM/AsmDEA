@@ -27,7 +27,7 @@ asmdea = "asmdea:main"
 asmdef-cli = "asmdea:main"
 
 [tool.setuptools.packages.find]
-include = ["common*", "models*", "analysers*", "analysis*", "reporting*", "utilities*"]
+include = ["common*", "models*", "analysers*", "analysis*", "reporting*", "enforcement*", "utilities*"]
 exclude = ["tests*", "reports*", "htmlcov*"]
 
 [tool.setuptools]

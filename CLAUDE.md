@@ -4,9 +4,18 @@ Last Updated: January 29, 2026
 
 ---
 
-## Important Rule
+## Important Rule: Use Virtual Environment
 
-- Always use the provided virtual environment for development to ensure dependency consistency.
+Always use the provided virtual environment for development to ensure dependency consistency.
+
+Run the following command from the project root to ensure you're using the correct Python version:
+
+```bash
+# Windows PowerShell
+.venv/Scripts/Activate.ps1; python --version
+# Linux/Mac
+source .venv/bin/activate; python --version
+```
 
 ## Project Purpose
 

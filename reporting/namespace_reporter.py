@@ -56,7 +56,7 @@ class NamespaceReporter(BaseReporter):
             allow_child_namespaces: Whether child namespaces are considered valid
             console: Rich Console instance (uses shared instance if not provided)
         """
-        super().__init__(verbose, console)
+        super().__init__(verbose=verbose, console=console)
         self.allow_child_namespaces = allow_child_namespaces
 
     def print_console_report(self, report: NamespaceAnalysisReport) -> None:

@@ -6,6 +6,10 @@ python-dotenv>=1.0.0
 # Rich console output
 rich>=13.0.0
 
+# Textual TUI framework
+textual>=0.50.0
+textual-dev>=1.0.0
+
 # Type checking and static analysis (Phase 3+)
 mypy>=1.8.0
 

@@ -307,3 +307,70 @@ python -m venv .venv
 - **README.md** - User guide, installation, API reference, examples
 - **pyproject.toml** - Project metadata and tool configuration
 - **.env.example** - Configuration template with all options
+
+---
+
+## TUI Implementation Plan (Textual)
+
+### Overview
+
+Introduce a new `tui/` module as an independent presentation layer that consumes existing analyser outputs and data models, keeping the current Rich-based `reporting/` module intact and ensuring both CLI and TUI remain decoupled from core functionality.
+
+### Implementation Steps
+
+1. **Create a new `tui/` package** at the project root (parallel to `reporting/`, `analysers/`, `models/`) containing `app.py`, `screens/`, `widgets/`, and `views/` subfolders—this isolates all Textual code from the existing CLI implementation.
+
+2. **Define a TUI entry point** in `asmdea.py` by adding a `tui` subcommand that launches the Textual app instead of running CLI commands—existing `cmd_*` functions and `reporting/` module remain untouched.
+
+3. **Build the app shell** (`tui/app.py`) with docked `Header`, `Footer`, and a `TabbedContent` container; tabs for Cycles, Namespaces, Files, and Enforcement mirror the CLI's analysis outputs without modifying the reporters.
+
+4. **Create view classes** (`tui/views/`) that accept existing data models (`CycleReport`, `NamespaceAnalysisReport`, `SortingResult`) and compose Textual widgets:
+   - **CycleView**: `Tree` for dependency paths, `DataTable` for stats
+   - **NamespaceView**: `DataTable` for problem assemblies, `Collapsible` for file lists
+   - **FileView**: `DataTable` with assembly file counts
+   - **EnforcementView**: `DataTable` for changes, `Tree` for diffs
+
+5. **Wire analysers to TUI** by calling `CycleAnalyser.analyse()`, `NamespaceAnalyser.analyse()`, etc. directly from the TUI layer—pass the returned data models to view classes, keeping analysers unaware of presentation concerns.
+
+6. **Run analysis asynchronously** using Textual Workers (`run_worker`) to execute analysers without blocking the UI; display progress via `ProgressBar` and stream logs to a `RichLog` widget in a dedicated "Activity" panel.
+
+### Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Theme sharing | Keep separate | Avoid coupling Rich and Textual presentation layers |
+| Launcher approach | `asmdea tui` subcommand | Clear separation from CLI commands |
+| Enforcement actions | Defer detailed design | Build base TUI first, add confirmation modals later |
+
+### Next Steps
+
+0. Consider the markdown document report on the `asmdef_entry.py` data model for potential TUI relevance: docs\asmdef-entry-tui-analysis.md
+
+1. **Add Textual dependency**: Update `requirements.txt` with `textual>=0.50.0` and optionally `textual-dev` for live reloading.
+
+2. **Scaffold `tui/` package**: Create `tui/__init__.py`, `tui/app.py` with a minimal `AsmDEAApp(App)` class.
+
+3. **Implement CycleView first**: `CycleReport` has the richest nested structure and will validate the data-model-to-widget pattern.
+
+4. **Add `tui` subcommand**: Wire `cmd_tui()` in `asmdea.py` with lazy import to avoid loading Textual for CLI-only usage.
+
+### Proposed TUI Structure
+
+```text
+tui/
+├── __init__.py
+├── app.py # Main AsmDEAApp(App) class
+├── screens/
+│ ├── __init__.py
+│ ├── analysis.py # Main analysis screen
+│ └── enforcement.py # Enforcement actions screen
+├── views/
+│ ├── __init__.py
+│ ├── cycle_view.py # CycleReport visualization
+│ ├── namespace_view.py # NamespaceAnalysisReport visualization
+│ ├── file_view.py # File mapping visualization
+│ └── enforcement_view.py # SortingResult visualization
+└── widgets/
+├── __init__.py
+└── (custom widgets as needed)
+```

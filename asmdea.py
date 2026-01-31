@@ -279,6 +279,25 @@ Environment Variables (from .env file):
         help="List available backups instead of restoring",
     )
 
+    # tui command - interactive terminal UI
+    tui = subparsers.add_parser(
+        "tui",
+        parents=[project_args],
+        help="Launch interactive terminal UI",
+    )
+    tui.add_argument(
+        "--allow-child-namespaces",
+        action="store_true",
+        default=get_env_bool("ALLOW_CHILD_NAMESPACES", True),
+        help="Allow child namespaces (default: True)",
+    )
+    tui.add_argument(
+        "--no-child-namespaces",
+        dest="allow_child_namespaces",
+        action="store_false",
+        help="Require exact namespace matches",
+    )
+
     return parser
 
 
@@ -503,6 +522,49 @@ def cmd_restore_backup(args: argparse.Namespace, logger: Any) -> int:
         return 1
 
 
+def cmd_tui(args: argparse.Namespace, logger: Any) -> int:
+    """Launch interactive terminal UI.
+
+    Uses lazy import to avoid loading Textual for CLI-only usage.
+    """
+    console = get_console()
+
+    # Lazy import of TUI to avoid loading Textual unless needed
+    try:
+        from tui import AsmDEAApp
+    except ImportError as e:
+        console.print("[error]TUI dependencies not installed.[/]")
+        console.print("Install with: [code]pip install textual[/]")
+        logger.error(f"Failed to import TUI: {e}")
+        return 1
+
+    # Validate paths if provided
+    project_path = args.project_path if hasattr(args, "project_path") else None
+    dict_file = args.dict_file if hasattr(args, "dict_file") else None
+
+    if project_path and not project_path.exists():
+        console.print(f"[warning]Project path does not exist:[/] [path]{project_path}[/]")
+        project_path = None
+
+    if dict_file and not dict_file.exists():
+        console.print(f"[warning]Dictionary file does not exist:[/] [path]{dict_file}[/]")
+        console.print("[muted]Run 'asmdea build-dict' first to create the dictionary.[/]")
+
+    allow_child_namespaces = getattr(args, "allow_child_namespaces", True)
+
+    console.print("[muted]Launching TUI...[/]")
+    logger.info("Starting TUI application")
+
+    app = AsmDEAApp(
+        project_path=project_path,
+        dict_file=dict_file,
+        allow_child_namespaces=allow_child_namespaces,
+    )
+    app.run()
+
+    return 0
+
+
 def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     """Run complete analysis pipeline."""
     exit_code = 0
@@ -560,6 +622,7 @@ def main() -> int:
         "validate-namespaces": cmd_validate_namespaces,
         "sort-deps": cmd_sort_deps,
         "restore-backup": cmd_restore_backup,
+        "tui": cmd_tui,
     }
 
     try:

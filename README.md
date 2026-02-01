@@ -42,7 +42,7 @@ cd AsmDEA
 python -m venv .venv
 
 # On Windows (PowerShell)
-.venv\Scripts\Activate.ps1
+.venv/Scripts/Activate.ps1
 
 # On macOS/Linux
 source .venv/bin/activate
@@ -52,6 +52,12 @@ source .venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
+```
+
+1. Then install AsmDEA in editable mode:
+
+```bash
+pip install -e .
 ```
 
 ## Quick Start (CLI)

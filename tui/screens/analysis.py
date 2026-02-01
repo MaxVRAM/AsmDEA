@@ -24,7 +24,6 @@ from textual.widgets import (
 )
 
 from models import CycleReport, NamespaceAnalysisReport, SortingResult
-
 from tui.views import CycleView, EnforcementView, FileView, NamespaceView
 
 

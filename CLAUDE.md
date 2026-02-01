@@ -25,7 +25,7 @@ Analyze Unity projects to detect circular dependencies between Assembly Definiti
 
 ## Project Structure
 
-```
+```text
 AsmDEA/
 ├── asmdea.py                  # CLI entry point
 ├── analysers/                  # Analyser classes
@@ -337,7 +337,7 @@ Introduce a new `tui/` module as an independent presentation layer that consumes
 ### Design Decisions
 
 | Decision | Choice | Rationale |
-|----------|--------|-----------|
+| -------- | ------ | --------- |
 | Theme sharing | Keep separate | Avoid coupling Rich and Textual presentation layers |
 | Launcher approach | `asmdea tui` subcommand | Clear separation from CLI commands |
 | Enforcement actions | Defer detailed design | Build base TUI first, add confirmation modals later |

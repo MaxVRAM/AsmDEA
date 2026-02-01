@@ -13,7 +13,7 @@ from textual.widgets import Footer, Header
 
 from models import CycleReport, NamespaceAnalysisReport, SortingResult
 
-from .screens import AnalysisScreen
+from .screens import ConfirmModal, WelcomeScreen
 
 
 class AsmDEAApp(App[None]):
@@ -83,6 +83,7 @@ class AsmDEAApp(App[None]):
         Binding("q", "quit", "Quit"),
         Binding("d", "toggle_dark", "Dark/Light"),
         Binding("r", "refresh", "Refresh"),
+        Binding("ctrl+r", "restart", "Restart"),
         Binding("escape", "back", "Back"),
     ]
 
@@ -110,15 +111,17 @@ class AsmDEAApp(App[None]):
         self.namespace_report: NamespaceAnalysisReport | None = None
         self.sorting_result: SortingResult | None = None
 
+        # Scan cache for .asmdef file counts (persists across restarts)
+        self.asmdef_scan_cache: dict[Path, int] = {}
+
     def compose(self) -> ComposeResult:
         """Create the main application layout."""
         yield Header()
-        yield AnalysisScreen(
-            project_path=self.project_path,
-            dict_file=self.dict_file,
-            allow_child_namespaces=self.allow_child_namespaces,
-        )
         yield Footer()
+
+    def on_mount(self) -> None:
+        """Push welcome screen when app starts."""
+        self.push_screen(WelcomeScreen(initial_path=self.project_path))
 
     def action_toggle_dark(self) -> None:
         """Toggle dark mode."""
@@ -126,12 +129,37 @@ class AsmDEAApp(App[None]):
 
     def action_refresh(self) -> None:
         """Refresh the current analysis."""
-        screen = self.query_one(AnalysisScreen)
-        screen.run_analysis()
+        from .screens import AnalysisScreen
+
+        # Only refresh if we're on the analysis screen
+        try:
+            screen = self.query_one(AnalysisScreen)
+            screen.run_analysis()
+        except Exception:
+            pass  # Not on analysis screen
+
+    async def action_restart(self) -> None:
+        """Restart the application (return to welcome screen)."""
+        # Show confirmation modal
+        confirmed = await self.push_screen_wait(ConfirmModal("Restart AsmDEA and return to welcome screen?"))
+
+        if confirmed:
+            # Clear analysis data but preserve scan cache
+            self.asmdef_dict = {}
+            self.cycle_report = None
+            self.namespace_report = None
+            self.sorting_result = None
+
+            # Pop all screens and return to welcome
+            self.pop_screen()
+            while len(self.screen_stack) > 1:
+                self.pop_screen()
+            self.push_screen(WelcomeScreen(initial_path=self.project_path))
 
     def action_back(self) -> None:
         """Go back (close modals, etc.)."""
-        pass  # Placeholder for future modal handling
+        if len(self.screen_stack) > 1:
+            self.pop_screen()
 
 
 def run_tui(

@@ -41,15 +41,21 @@ class AsmdefDirectoryTree(DirectoryTree):
         self._spinner_timer: Any = None
 
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
-        """Filter to show only directories.
+        """Filter to show only directories, excluding those with 0 .asmdef files.
 
         Args:
             paths: Paths to filter
 
         Returns:
-            Iterator of directory paths only
+            Iterator of directory paths only, excluding zero-count scanned folders
         """
-        return [path for path in paths if path.is_dir()]
+        cache: dict[Path, int] = getattr(self.app, "asmdef_scan_cache", {})
+        result = []
+        # Include if not in cache yet, or if count > 0
+        for path in paths:
+            if path.is_dir() and (path not in cache or cache[path] > 0):
+                result.append(path)
+        return result
 
     def render_label(self, node: Any, base_style: Any, style: Any) -> Text:
         """Render tree node label with .asmdef count.
@@ -84,20 +90,20 @@ class AsmdefDirectoryTree(DirectoryTree):
         # Check cache
         if path in cache:
             count = cache[path]
-            if count == 0:
-                # Dim folders with no .asmdef files
-                result = Text(f"{label} [0]")
-                result.stylize("dim")
-                return result
+            # Folders with 0 are filtered out in filter_paths, but show anyway if somehow visible
             return Text(f"{label} [{count}]")
 
-        # Unscanned
-        return Text(f"{label} [?]")
+        # Unscanned - show grey with spinner in brackets
+        spinner = self.SPINNER_FRAMES[self.spinner_frame % len(self.SPINNER_FRAMES)]
+        result = Text(f"{label} [{spinner}]")
+        result.stylize("dim")
+        return result
 
     def on_mount(self) -> None:
         """Set up spinner timer when mounted."""
         super().on_mount()
-        self._start_spinner_if_needed()
+        # Always start spinner for unscanned folders
+        self._spinner_timer = self.set_interval(0.1, self._update_spinner)
 
     def _start_spinner_if_needed(self) -> None:
         """Start spinner timer if there are scanning paths."""
@@ -113,7 +119,7 @@ class AsmdefDirectoryTree(DirectoryTree):
     def _update_spinner(self) -> None:
         """Update spinner frame and refresh display."""
         self.spinner_frame += 1
-        # Refresh the entire tree to update spinners
+        # Refresh the entire tree to update all spinners
         self.refresh()
 
     def on_tree_node_expanded(self, event: DirectoryTree.NodeExpanded) -> None:
@@ -194,6 +200,22 @@ class AsmdefDirectoryTree(DirectoryTree):
         # Remove from scanning set and refresh
         self.scanning_paths.discard(root_path)
         self._stop_spinner_if_done()
+
+        # If count is 0, we need to remove this node from tree and update selection
+        if total_count == 0:
+            # Check if currently highlighted node is the one being removed
+            if self.cursor_line is not None:
+                current_node = self.get_node_at_line(self.cursor_line)
+                if current_node and current_node.data:
+                    current_path = Path(str(current_node.data.path))
+                    if current_path == root_path:
+                        # Move selection to parent before removing
+                        if current_node.parent:
+                            self.select_node(current_node.parent)
+
+            # Reload the parent to remove zero-count children
+            self._reload_parent_node(root_path)
+
         self.refresh()
 
     def rescan_visible(self) -> None:
@@ -211,3 +233,15 @@ class AsmdefDirectoryTree(DirectoryTree):
         if self.path:
             root_path = Path(str(self.path))
             self.scan_directory(root_path)
+
+    def _reload_parent_node(self, child_path: Path) -> None:
+        """Reload parent node to refresh its children after scan completes.
+
+        Args:
+            child_path: Path of the child that was scanned
+        """
+        # Find the parent node and reload it
+        parent_path = child_path.parent
+        # Trigger a reload by calling reload_node if we can find it
+        # For now, just refresh the tree which will re-filter
+        self.reload()

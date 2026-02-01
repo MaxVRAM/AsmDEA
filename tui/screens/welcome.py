@@ -133,14 +133,36 @@ class WelcomeScreen(Screen):
             # Right column - directory tree
             with Vertical(id="right-panel"):
                 yield Static("Browse Project Directory", id="tree-title")
-                yield AsmdefDirectoryTree(str(self.initial_path))
+                # Start at filesystem root to allow full navigation
+                yield AsmdefDirectoryTree("/")
 
     def on_mount(self) -> None:
         """Set initial selected path when mounted."""
         self.selected_path = self.initial_path
-        # Trigger initial scan of the root path
         tree = self.query_one(AsmdefDirectoryTree)
+        tree.focus()
+
+        # Navigate to the initial path in the tree
+        if self.initial_path and self.initial_path.exists():
+            # Expand all parent directories to make initial_path visible
+            tree.path = str(self.initial_path)
+            # Schedule the path expansion after the tree is ready
+            self.call_after_refresh(self._navigate_to_initial_path)
+
+        # Trigger initial scan of the root path
         tree.scan_directory(self.initial_path)
+
+    def _navigate_to_initial_path(self) -> None:
+        """Navigate to and select the initial path in the tree after mount."""
+        tree = self.query_one(AsmdefDirectoryTree)
+
+        # Reset the tree to start from the initial path
+        tree.path = str(self.initial_path)
+        tree.reload()
+
+        # Update the selected path display
+        path_label = self.query_one("#selected-path", Label)
+        path_label.update(str(self.initial_path))
 
     @on(AsmdefDirectoryTree.DirectorySelected)
     def on_directory_selected(self, event: AsmdefDirectoryTree.DirectorySelected) -> None:
@@ -157,6 +179,25 @@ class WelcomeScreen(Screen):
         # Trigger scan if not already cached
         tree = self.query_one(AsmdefDirectoryTree)
         tree.scan_directory(self.selected_path)
+
+    @on(AsmdefDirectoryTree.NodeHighlighted)
+    def on_node_highlighted(self, event: AsmdefDirectoryTree.NodeHighlighted) -> None:
+        """Handle directory highlighting (arrow key navigation).
+
+        Args:
+            event: Node highlight event
+        """
+        node = event.node
+        entry = node.data
+        if entry is not None:
+            self.selected_path = Path(str(entry.path))
+            # Update the selected path label
+            path_label = self.query_one("#selected-path", Label)
+            path_label.update(str(self.selected_path))
+
+            # Trigger scan if not already cached
+            tree = self.query_one(AsmdefDirectoryTree)
+            tree.scan_directory(self.selected_path)
 
     @on(Button.Pressed, "#continue-button")
     def on_continue_pressed(self) -> None:

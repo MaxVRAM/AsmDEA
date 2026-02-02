@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
+from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser, SearchAnalyser
+from models import MatchType
 
 
 class TestCycleAnalyser:
@@ -236,3 +237,179 @@ public class GlobalClass { }
         assert result["stats"]["total_cs_files"] >= 0
         assert result["stats"]["assigned_files"] >= 0
         assert result["stats"]["orphaned_files"] >= 0
+
+
+class TestSearchAnalyser:
+    """Test suite for SearchAnalyser."""
+
+    def test_init_with_valid_dict(self, sample_asmdef_dict):
+        """Test initializing SearchAnalyser with valid dictionary."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        assert analyser.asmdef_dict == sample_asmdef_dict
+        assert analyser.root_path is None
+
+    def test_init_with_root_path(self, sample_asmdef_dict, tmp_path: Path):
+        """Test initializing SearchAnalyser with root path."""
+        analyser = SearchAnalyser(sample_asmdef_dict, tmp_path)
+
+        assert analyser.root_path == tmp_path.resolve()
+
+    def test_search_by_guid_exact_match(self, sample_asmdef_dict):
+        """Test searching by exact GUID match."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("GUID:assembly1")
+
+        assert len(results) == 1
+        assert results[0].guid == "GUID:assembly1"
+        assert results[0].name == "Assembly.Core"
+        assert results[0].match_type == MatchType.GUID
+
+    def test_search_by_guid_no_match(self, sample_asmdef_dict):
+        """Test searching by GUID with no match."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("GUID:nonexistent")
+
+        assert len(results) == 0
+
+    def test_search_by_name_exact_match(self, sample_asmdef_dict):
+        """Test searching by assembly name."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("Assembly.Core")
+
+        assert len(results) == 1
+        assert results[0].name == "Assembly.Core"
+        assert results[0].match_type == MatchType.NAME
+        assert results[0].matched_value == "Assembly.Core"
+
+    def test_search_by_name_partial_match(self, sample_asmdef_dict):
+        """Test searching by partial assembly name."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("Core")
+
+        # "Core" matches both name "Assembly.Core" and root namespace "MyProject.Core"
+        assert len(results) == 2
+        names = {r.name for r in results}
+        assert "Assembly.Core" in names
+        match_types = {r.match_type for r in results}
+        assert MatchType.NAME in match_types
+        assert MatchType.ROOT_NAMESPACE in match_types
+
+    def test_search_by_root_namespace(self, sample_asmdef_dict):
+        """Test searching by root namespace."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("MyProject.Utils")
+
+        assert len(results) == 1
+        assert results[0].name == "Assembly.Utils"
+        assert results[0].match_type == MatchType.ROOT_NAMESPACE
+        assert results[0].matched_value == "MyProject.Utils"
+
+    def test_search_by_namespace_partial_match(self, sample_asmdef_dict):
+        """Test searching by partial namespace."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("MyProject")
+
+        # Should match all assemblies with MyProject in their namespace
+        assert len(results) >= 3
+
+    def test_search_case_insensitive(self, sample_asmdef_dict):
+        """Test that search is case-insensitive."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results_lower = analyser.search("assembly.core")
+        results_upper = analyser.search("ASSEMBLY.CORE")
+
+        assert len(results_lower) == 1
+        assert len(results_upper) == 1
+        assert results_lower[0].name == results_upper[0].name
+
+    def test_search_by_script_namespace(self):
+        """Test searching by script namespace."""
+        test_dict = {
+            "GUID:test1": {
+                "name": "TestAssembly",
+                "rootNamespace": "Test",
+                "scriptNamespaces": ["Test.Feature", "Test.Utils", "Test.Models"],
+                "relativePath": "Assets/Test",
+            },
+        }
+        analyser = SearchAnalyser(test_dict)
+
+        results = analyser.search("Test.Feature")
+
+        assert len(results) == 1
+        assert results[0].match_type == MatchType.SCRIPT_NAMESPACE
+        assert results[0].matched_value == "Test.Feature"
+
+    def test_search_multiple_matches_same_assembly(self):
+        """Test that multiple match types for same assembly are all returned."""
+        test_dict = {
+            "GUID:test1": {
+                "name": "MyProject.Core",
+                "rootNamespace": "MyProject.Core",
+                "scriptNamespaces": ["MyProject.Core.Models", "MyProject.Core.Utils"],
+                "relativePath": "Assets/Core",
+            },
+        }
+        analyser = SearchAnalyser(test_dict)
+
+        results = analyser.search("MyProject.Core")
+
+        # Should match both name and root namespace (and potentially script namespaces)
+        assert len(results) >= 2
+        match_types = {r.match_type for r in results}
+        assert MatchType.NAME in match_types
+        assert MatchType.ROOT_NAMESPACE in match_types
+
+    def test_search_multiple_assemblies_match(self):
+        """Test that multiple assemblies matching are all returned."""
+        test_dict = {
+            "GUID:test1": {
+                "name": "MyCompany.Feature1",
+                "rootNamespace": "MyCompany.Feature1",
+                "relativePath": "Assets/Feature1",
+            },
+            "GUID:test2": {
+                "name": "MyCompany.Feature2",
+                "rootNamespace": "MyCompany.Feature2",
+                "relativePath": "Assets/Feature2",
+            },
+            "GUID:test3": {
+                "name": "OtherCompany.Feature",
+                "rootNamespace": "OtherCompany",
+                "relativePath": "Assets/Other",
+            },
+        }
+        analyser = SearchAnalyser(test_dict)
+
+        results = analyser.search("MyCompany")
+
+        # Should match both Feature1 and Feature2
+        assert len(results) >= 2
+        names = {r.name for r in results}
+        assert "MyCompany.Feature1" in names
+        assert "MyCompany.Feature2" in names
+
+    def test_search_no_match(self, sample_asmdef_dict):
+        """Test searching with no matches."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("NonExistentNamespace")
+
+        assert len(results) == 0
+
+    def test_search_ignores_metadata(self, sample_asmdef_dict):
+        """Test that search ignores metadata entries."""
+        analyser = SearchAnalyser(sample_asmdef_dict)
+
+        results = analyser.search("metadata")
+
+        # Should not match the _metadata entry
+        assert len(results) == 0

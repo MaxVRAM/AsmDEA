@@ -31,7 +31,7 @@ try:
 except ImportError:
     pass
 
-from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
+from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser, SearchAnalyser
 from common import (
     configure_console,
     get_console,
@@ -296,6 +296,17 @@ Environment Variables (from .env file):
         dest="allow_child_namespaces",
         action="store_false",
         help="Require exact namespace matches",
+    )
+
+    # search command - lookup assemblies by namespace or GUID
+    search = subparsers.add_parser(
+        "search",
+        parents=[project_args],
+        help="Search for assemblies by namespace or GUID",
+    )
+    search.add_argument(
+        "query",
+        help="GUID or namespace to search for",
     )
 
     return parser
@@ -565,6 +576,65 @@ def cmd_tui(args: argparse.Namespace, logger: Any) -> int:
     return 0
 
 
+def cmd_search(args: argparse.Namespace, logger: Any) -> int:
+    """Search for assemblies by namespace or GUID."""
+    console = get_console()
+    
+    if not args.dict_file.exists():
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+    
+    analyser = SearchAnalyser(asmdef_dict, args.project_path)
+    results = analyser.search(args.query)
+    
+    if not results:
+        console.print(f"[warning]No matches found for:[/] {args.query}")
+        return 0
+    
+    # Print results
+    console.print(f"\n[header]Search Results for:[/] {args.query}\n")
+    
+    # Group results by assembly to avoid duplicates
+    seen_guids = set()
+    for result in results:
+        if result.guid in seen_guids:
+            # Already printed this assembly, just add match info
+            continue
+        seen_guids.add(result.guid)
+        
+        # Collect all match types for this assembly
+        assembly_matches = [r for r in results if r.guid == result.guid]
+        
+        console.print(f"[header]Assembly:[/] {result.name}")
+        
+        for match in assembly_matches:
+            # Print the matched field in bold
+            if match.match_type.value == "guid":
+                console.print(f"  GUID: [bold]{match.matched_value}[/]")
+            else:
+                console.print(f"  GUID: {match.guid}")
+            
+            if match.match_type.value == "name":
+                console.print(f"  Name: [bold]{match.matched_value}[/]")
+            elif match.root_namespace:
+                console.print(f"  Root Namespace: {match.root_namespace}")
+            
+            if match.match_type.value == "root_namespace":
+                console.print(f"  Root Namespace: [bold]{match.matched_value}[/]")
+            
+            if match.match_type.value == "script_namespace":
+                console.print(f"  Script Namespace: [bold]{match.matched_value}[/]")
+        
+        console.print(f"  File Path: [path]{result.file_path}[/]")
+        console.print()
+    
+    console.print(f"[success]Found {len(seen_guids)} matching assembl{'y' if len(seen_guids) == 1 else 'ies'}[/]")
+    return 0
+
+
 def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     """Run complete analysis pipeline."""
     exit_code = 0
@@ -623,6 +693,7 @@ def main() -> int:
         "sort-deps": cmd_sort_deps,
         "restore-backup": cmd_restore_backup,
         "tui": cmd_tui,
+        "search": cmd_search,
     }
 
     try:

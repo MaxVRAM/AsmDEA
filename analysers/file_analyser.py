@@ -27,6 +27,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from analysers.namespace_analyser import NamespaceAnalyser
+
 
 class FileAnalyser:
     """Analyses C# file ownership by assemblies."""
@@ -106,6 +108,7 @@ class FileAnalyser:
 
         # Assign files to assemblies
         assembly_files = defaultdict(list)
+        assembly_namespaces = defaultdict(set)
         orphaned_files = []
 
         for cs_file in cs_files:
@@ -122,6 +125,10 @@ class FileAnalyser:
                 if assembly_root:
                     relative = cs_file.relative_to(assembly_root)
                     assembly_files[owner_guid].append(str(relative))
+                    
+                    # Extract namespaces from the C# file
+                    namespaces = NamespaceAnalyser.extract_namespace_from_file(cs_file)
+                    assembly_namespaces[owner_guid].update(namespaces)
             else:
                 orphaned_files.append(cs_file)
 
@@ -130,6 +137,7 @@ class FileAnalyser:
         for guid, files in assembly_files.items():
             if guid in updated_dict:
                 updated_dict[guid]["csFiles"] = sorted(files)
+                updated_dict[guid]["scriptNamespaces"] = sorted(assembly_namespaces[guid])
 
         # Compile statistics
         stats = {

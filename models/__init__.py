@@ -14,6 +14,10 @@ from .namespace_analysis import (
     NamespaceAnalysisReport,
     NamespaceMatch,
 )
+from .search_result import (
+    MatchType,
+    SearchResult,
+)
 from .sorting_result import (
     DependencyDiff,
     SortingChange,
@@ -35,6 +39,9 @@ __all__ = [
     "CycleDetails",
     "CycleReport",
     "CycleSummary",
+    # Search
+    "MatchType",
+    "SearchResult",
     # Sorting
     "DependencyDiff",
     "SortingChange",

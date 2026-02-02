@@ -597,41 +597,108 @@ def cmd_search(args: argparse.Namespace, logger: Any) -> int:
     # Print results
     console.print(f"\n[header]Search Results for:[/] {args.query}\n")
     
-    # Group results by assembly to avoid duplicates
-    seen_guids = set()
+    # Group results by assembly
+    from collections import defaultdict
+    from rich.panel import Panel
+    
+    assemblies = defaultdict(list)
     for result in results:
-        if result.guid in seen_guids:
-            # Already printed this assembly, just add match info
-            continue
-        seen_guids.add(result.guid)
+        assemblies[result.guid].append(result)
+    
+    # Check for exact matches on name or root namespace to highlight
+    exact_matches = []
+    other_matches = []
+    
+    for guid, matches in assemblies.items():
+        # Get assembly info from first match
+        first_match = matches[0]
         
-        # Collect all match types for this assembly
-        assembly_matches = [r for r in results if r.guid == result.guid]
+        # Check if this is an exact match
+        is_exact = any(
+            (m.match_type.value == "name" and m.matched_value == args.query) or
+            (m.match_type.value == "root_namespace" and m.matched_value == args.query)
+            for m in matches
+        )
         
-        console.print(f"[header]Assembly:[/] {result.name}")
+        if is_exact:
+            exact_matches.append((guid, matches))
+        else:
+            other_matches.append((guid, matches))
+    
+    # Print exact matches first in panels
+    for guid, matches in exact_matches:
+        first_match = matches[0]
+        match_types = {m.match_type for m in matches}
         
-        for match in assembly_matches:
-            # Print the matched field in bold
-            if match.match_type.value == "guid":
-                console.print(f"  GUID: [bold]{match.matched_value}[/]")
+        # Build output lines
+        lines = []
+        
+        # GUID
+        if any(m.match_type.value == "guid" for m in matches):
+            lines.append(f"GUID: [bold]{guid}[/]")
+        else:
+            lines.append(f"GUID: {guid}")
+        
+        # Name
+        if any(m.match_type.value == "name" for m in matches):
+            lines.append(f"Name: [bold]{first_match.name}[/]")
+        else:
+            lines.append(f"Name: {first_match.name}")
+        
+        # Root Namespace
+        if first_match.root_namespace:
+            if any(m.match_type.value == "root_namespace" for m in matches):
+                lines.append(f"Root Namespace: [bold]{first_match.root_namespace}[/]")
             else:
-                console.print(f"  GUID: {match.guid}")
-            
-            if match.match_type.value == "name":
-                console.print(f"  Name: [bold]{match.matched_value}[/]")
-            elif match.root_namespace:
-                console.print(f"  Root Namespace: {match.root_namespace}")
-            
-            if match.match_type.value == "root_namespace":
-                console.print(f"  Root Namespace: [bold]{match.matched_value}[/]")
-            
-            if match.match_type.value == "script_namespace":
-                console.print(f"  Script Namespace: [bold]{match.matched_value}[/]")
+                lines.append(f"Root Namespace: {first_match.root_namespace}")
         
-        console.print(f"  File Path: [path]{result.file_path}[/]")
+        # Script Namespaces (list all unique matched ones)
+        script_namespaces = [m.matched_value for m in matches if m.match_type.value == "script_namespace"]
+        if script_namespaces:
+            for ns in sorted(set(script_namespaces)):
+                lines.append(f"Script Namespace: [bold]{ns}[/]")
+        
+        lines.append(f"File Path: [path]{first_match.file_path}[/]")
+        
+        panel_content = "\n".join(lines)
+        console.print(Panel(panel_content, title=f"[success]✓ Exact Match[/]", border_style="success"))
         console.print()
     
-    console.print(f"[success]Found {len(seen_guids)} matching assembl{'y' if len(seen_guids) == 1 else 'ies'}[/]")
+    # Print other matches
+    for guid, matches in other_matches:
+        first_match = matches[0]
+        match_types = {m.match_type for m in matches}
+        
+        console.print(f"[header]Assembly:[/] {first_match.name}")
+        
+        # GUID
+        if any(m.match_type.value == "guid" for m in matches):
+            console.print(f"  GUID: [bold]{guid}[/]")
+        else:
+            console.print(f"  GUID: {guid}")
+        
+        # Name (only if it matched)
+        if any(m.match_type.value == "name" for m in matches):
+            console.print(f"  Name: [bold]{first_match.name}[/]")
+        
+        # Root Namespace
+        if first_match.root_namespace:
+            if any(m.match_type.value == "root_namespace" for m in matches):
+                console.print(f"  Root Namespace: [bold]{first_match.root_namespace}[/]")
+            else:
+                console.print(f"  Root Namespace: {first_match.root_namespace}")
+        
+        # Script Namespaces (list all unique matched ones)
+        script_namespaces = [m.matched_value for m in matches if m.match_type.value == "script_namespace"]
+        if script_namespaces:
+            for ns in sorted(set(script_namespaces)):
+                console.print(f"  Script Namespace: [bold]{ns}[/]")
+        
+        console.print(f"  File Path: [path]{first_match.file_path}[/]")
+        console.print()
+    
+    total = len(assemblies)
+    console.print(f"[success]Found {total} matching assembl{'y' if total == 1 else 'ies'}[/]")
     return 0
 
 

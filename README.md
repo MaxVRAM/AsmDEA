@@ -306,6 +306,8 @@ asmdea build-dict \
 
 **First-time analysis:**
 
+First run this: `pip install -e .`
+
 ```bash
 # 1. Create .env file
 cp .env.example .env

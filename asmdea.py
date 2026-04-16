@@ -80,6 +80,7 @@ Environment Variables (from .env file):
   OUTPUT_PATH            - Default output directory (default: ./reports)
   DICT_FILE              - Default dictionary file path
   ALLOW_CHILD_NAMESPACES - Allow child namespaces (true/false, default: true)
+  SHOW_UNMATCHED_PATHS   - Include unmatchedPaths in namespace_report.json (true/false, default: true)
   DETAILED               - Show detailed dependency trees (true/false, default: false)
   DEPTH                  - Max depth for dependency tree visualization (default: 2)
   LOG_LEVEL              - Logging level (DEBUG/INFO/WARNING/ERROR)
@@ -144,6 +145,18 @@ Environment Variables (from .env file):
         help="Require exact namespace matches",
     )
     analyze.add_argument(
+        "--show-unmatched-paths",
+        action="store_true",
+        default=get_env_bool("SHOW_UNMATCHED_PATHS", True),
+        help="Include unmatched file paths in namespace_report.json (default: True)",
+    )
+    analyze.add_argument(
+        "--no-unmatched-paths",
+        dest="show_unmatched_paths",
+        action="store_false",
+        help="Omit unmatched file paths from namespace_report.json",
+    )
+    analyze.add_argument(
         "--detailed",
         action="store_true",
         default=get_env_bool("DETAILED", False),
@@ -206,6 +219,18 @@ Environment Variables (from .env file):
         dest="allow_child_namespaces",
         action="store_false",
         help="Require exact namespace matches",
+    )
+    ns.add_argument(
+        "--show-unmatched-paths",
+        action="store_true",
+        default=get_env_bool("SHOW_UNMATCHED_PATHS", True),
+        help="Include unmatched file paths in namespace_report.json (default: True)",
+    )
+    ns.add_argument(
+        "--no-unmatched-paths",
+        dest="show_unmatched_paths",
+        action="store_false",
+        help="Omit unmatched file paths from namespace_report.json",
     )
 
     # sort-deps command (enforcement)
@@ -378,7 +403,11 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
     analyser = NamespaceAnalyser(asmdef_dict, args.project_path, args.allow_child_namespaces)
     report = analyser.analyse()
 
-    reporter = NamespaceReporter(verbose=args.verbose, allow_child_namespaces=args.allow_child_namespaces)
+    reporter = NamespaceReporter(
+        verbose=args.verbose,
+        allow_child_namespaces=args.allow_child_namespaces,
+        show_unmatched_paths=args.show_unmatched_paths,
+    )
     reporter.print_console_report(report)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

@@ -47,6 +47,7 @@ class NamespaceReporter(BaseReporter):
         self,
         verbose: bool = False,
         allow_child_namespaces: bool = True,
+        show_unmatched_paths: bool = True,
         console: Console | None = None,
     ):
         """Initialize namespace reporter.
@@ -54,10 +55,13 @@ class NamespaceReporter(BaseReporter):
         Args:
             verbose: Enable verbose output
             allow_child_namespaces: Whether child namespaces are considered valid
+            show_unmatched_paths: Include the `unmatchedPaths` list in the JSON report
+                (default: True). Set False to keep the JSON compact.
             console: Rich Console instance (uses shared instance if not provided)
         """
         super().__init__(verbose=verbose, console=console)
         self.allow_child_namespaces = allow_child_namespaces
+        self.show_unmatched_paths = show_unmatched_paths
 
     def print_console_report(self, report: NamespaceAnalysisReport) -> None:
         """Print formatted namespace report to console.
@@ -181,6 +185,24 @@ class NamespaceReporter(BaseReporter):
         Returns:
             Dictionary ready for JSON serialization
         """
+        def _assembly_entry(stats: AssemblyNamespaceStats) -> dict[str, Any]:
+            entry: dict[str, Any] = {
+                "name": stats.assembly_name,
+                "rootNamespace": stats.root_namespace,
+                "totalFiles": stats.total_files,
+                "matchedFiles": stats.matched_files,
+                "childNamespaceFiles": stats.child_namespace_files,
+                "unmatchedFiles": stats.unmatched_files,
+                "noNamespaceFiles": stats.no_namespace_files,
+                "matchPercentage": round(stats.match_percentage, 2),
+                "compliancePercentage": round(stats.compliance_percentage, 2),
+                "noNamespacePaths": [str(p) for p in stats.no_namespace_paths],
+                "namespaceMismatches": stats.namespace_mismatches,
+            }
+            if self.show_unmatched_paths:
+                entry["unmatchedPaths"] = [str(p) for p in stats.unmatched_file_paths]
+            return entry
+
         return {
             "summary": {
                 "totalAssemblies": report.total_assemblies,
@@ -192,21 +214,7 @@ class NamespaceReporter(BaseReporter):
                 "allowChildNamespaces": report.allow_child_namespaces,
             },
             "assemblies": {
-                guid: {
-                    "name": stats.assembly_name,
-                    "rootNamespace": stats.root_namespace,
-                    "totalFiles": stats.total_files,
-                    "matchedFiles": stats.matched_files,
-                    "childNamespaceFiles": stats.child_namespace_files,
-                    "unmatchedFiles": stats.unmatched_files,
-                    "noNamespaceFiles": stats.no_namespace_files,
-                    "matchPercentage": round(stats.match_percentage, 2),
-                    "compliancePercentage": round(stats.compliance_percentage, 2),
-                    "unmatchedPaths": [str(p) for p in stats.unmatched_file_paths],
-                    "noNamespacePaths": [str(p) for p in stats.no_namespace_paths],
-                    "namespaceMismatches": stats.namespace_mismatches,
-                }
-                for guid, stats in report.assembly_stats.items()
+                guid: _assembly_entry(stats) for guid, stats in report.assembly_stats.items()
             },
             "problemAssemblies": [stats.assembly_name for stats in report.get_problem_assemblies()],
         }

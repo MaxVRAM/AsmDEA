@@ -21,17 +21,70 @@ Usage:
     reporter.print_detailed_report(analysis_data, max_files_per_assembly=20)
 """
 
+from pathlib import Path
 from typing import Any
 
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 
+from common import FilepathType, format_path
+
 from .base import BaseReporter
 
 
 class FileAnalysisReporter(BaseReporter):
     """Reporter for C# file ownership analysis results."""
+
+    def __init__(
+        self,
+        verbose: bool = False,
+        detailed: bool = False,
+        depth: int = 3,
+        console: Any = None,
+        filepath_type: FilepathType = FilepathType.RELATIVE,
+        root_path: Path | None = None,
+    ):
+        """Initialize file analysis reporter.
+
+        Args:
+            verbose: Enable verbose output
+            detailed: Enable detailed output
+            depth: Maximum depth (unused here; inherited)
+            console: Rich Console instance
+            filepath_type: Render paths as ABSOLUTE or RELATIVE (to ``root_path``).
+            root_path: Project root used as the base for RELATIVE formatting and
+                for reassembling absolute paths from per-assembly relative ``csFiles``.
+        """
+        super().__init__(
+            verbose=verbose,
+            detailed=detailed,
+            depth=depth,
+            console=console,
+            filepath_type=filepath_type,
+            root_path=root_path,
+        )
+
+    def _format_assembly_files(self, assembly_data: dict[str, Any]) -> list[str]:
+        """Format the csFiles list for one assembly per filepath_type.
+
+        ``csFiles`` are stored by :class:`FileAnalyser` as paths relative to
+        each assembly root. Combine with the assembly's ``relativePath`` and
+        (if known) ``self.root_path`` to reassemble an absolute path, then
+        hand off to :func:`format_path` for final rendering.
+        """
+        cs_files: list[str] = assembly_data.get("csFiles", []) or []
+        assembly_rel = assembly_data.get("relativePath", "")
+
+        if self.root_path is None:
+            # No root known — fall back to the stored (assembly-relative) string.
+            return list(cs_files)
+
+        assembly_root = (self.root_path / assembly_rel) if assembly_rel else self.root_path
+        return [
+            format_path(assembly_root / cs_file, self.filepath_type, self.root_path)
+            for cs_file in cs_files
+        ]
 
     def print_console_report(self, data: dict[str, Any]) -> None:
         """Print formatted file analysis report to console.
@@ -121,7 +174,7 @@ class FileAnalysisReporter(BaseReporter):
                 guid: {
                     "name": assembly_data.get("name", guid),
                     "fileCount": len(assembly_data.get("csFiles", [])),
-                    "files": assembly_data.get("csFiles", []),
+                    "files": self._format_assembly_files(assembly_data),
                     "relativePath": assembly_data.get("relativePath", ""),
                 }
                 for guid, assembly_data in assemblies.items()
@@ -144,18 +197,18 @@ class FileAnalysisReporter(BaseReporter):
 
         for guid, assembly_data in assemblies.items():
             name = assembly_data.get("name", guid)
-            cs_files = assembly_data.get("csFiles", [])
+            formatted_files = self._format_assembly_files(assembly_data)
 
-            if not cs_files:
+            if not formatted_files:
                 continue
 
-            console.print(f"[assembly]{name}[/] ({len(cs_files)} files):")
+            console.print(f"[assembly]{name}[/] ({len(formatted_files)} files):")
 
-            for file_path in cs_files[:max_files_per_assembly]:
+            for file_path in formatted_files[:max_files_per_assembly]:
                 console.print(f"  [path]{file_path}[/]")
 
-            if len(cs_files) > max_files_per_assembly:
-                remaining = len(cs_files) - max_files_per_assembly
+            if len(formatted_files) > max_files_per_assembly:
+                remaining = len(formatted_files) - max_files_per_assembly
                 console.print(f"  [muted]... and {remaining} more[/]")
 
             console.print()

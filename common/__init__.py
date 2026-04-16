@@ -34,7 +34,7 @@ from .console import (
     reset_console,
 )
 from .logging_config import get_logger, setup_logging
-from .path_utils import validate_directory
+from .path_utils import FilepathType, format_path, validate_directory
 from .dictionary import build_asmdef_dictionary
 
 __all__ = [
@@ -63,6 +63,8 @@ __all__ = [
     "load_asmdef_dict",
     "save_json_report",
     "validate_directory",
+    "FilepathType",
+    "format_path",
     "filter_assemblies",
     "get_metadata",
     "set_metadata",

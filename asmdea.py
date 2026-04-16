@@ -33,6 +33,7 @@ except ImportError:
 
 from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
 from common import (
+    FilepathType,
     configure_console,
     get_console,
     get_logger,
@@ -81,6 +82,7 @@ Environment Variables (from .env file):
   DICT_FILE              - Default dictionary file path
   ALLOW_CHILD_NAMESPACES - Allow child namespaces (true/false, default: true)
   SHOW_UNMATCHED_PATHS   - Include unmatchedPaths in namespace_report.json (true/false, default: true)
+  FILEPATH_TYPE          - File path format in reports: absolute|relative (default: relative)
   DETAILED               - Show detailed dependency trees (true/false, default: false)
   DEPTH                  - Max depth for dependency tree visualization (default: 2)
   LOG_LEVEL              - Logging level (DEBUG/INFO/WARNING/ERROR)
@@ -123,6 +125,13 @@ Environment Variables (from .env file):
         type=Path,
         default=Path(get_env_or_default("DICT_FILE", "./reports/asmdef_dictionary.json")),
         help="Dictionary file path",
+    )
+    project_args.add_argument(
+        "--filepath-type",
+        choices=["absolute", "relative"],
+        default=get_env_or_default("FILEPATH_TYPE", "relative"),
+        help="File path format in reports: 'absolute' or 'relative' to the "
+             "project path (default: relative)",
     )
 
     # analyze command (full pipeline)
@@ -352,7 +361,13 @@ def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
     analyser = CycleAnalyser(asmdef_dict)
     report = analyser.analyse(max_depth=args.depth)
 
-    reporter = CycleReporter(verbose=args.verbose, detailed=args.detailed, depth=args.depth)
+    reporter = CycleReporter(
+        verbose=args.verbose,
+        detailed=args.detailed,
+        depth=args.depth,
+        filepath_type=FilepathType.parse(getattr(args, "filepath_type", None)),
+        root_path=getattr(args, "project_path", None),
+    )
     reporter.print_console_report(report)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -377,7 +392,11 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
     analyser = FileAnalyser(asmdef_dict, args.project_path)
     result = analyser.analyse()
 
-    reporter = FileAnalysisReporter(verbose=args.verbose)
+    reporter = FileAnalysisReporter(
+        verbose=args.verbose,
+        filepath_type=FilepathType.parse(getattr(args, "filepath_type", None)),
+        root_path=args.project_path,
+    )
     reporter.print_console_report(result)
 
     # Save updated dictionary with file mappings
@@ -407,6 +426,8 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
         verbose=args.verbose,
         allow_child_namespaces=args.allow_child_namespaces,
         show_unmatched_paths=args.show_unmatched_paths,
+        filepath_type=FilepathType.parse(getattr(args, "filepath_type", None)),
+        root_path=args.project_path,
     )
     reporter.print_console_report(report)
 

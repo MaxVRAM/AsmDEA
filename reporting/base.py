@@ -32,7 +32,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from common import get_console, get_logger
+from common import FilepathType, get_console, get_logger
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -46,7 +46,15 @@ class BaseReporter(ABC):
     Provides common functionality for console and JSON reporting.
     """
 
-    def __init__(self, verbose: bool = False, detailed: bool = False, depth: int = 3, console: Console | None = None):
+    def __init__(
+        self,
+        verbose: bool = False,
+        detailed: bool = False,
+        depth: int = 3,
+        console: Console | None = None,
+        filepath_type: FilepathType = FilepathType.RELATIVE,
+        root_path: Path | None = None,
+    ):
         """Initialize reporter.
 
         Args:
@@ -54,11 +62,17 @@ class BaseReporter(ABC):
             detailed: Enable detailed output (e.g., dependency trees)
             depth: Maximum depth for dependency tree visualization
             console: Rich Console instance (uses shared instance if not provided)
+            filepath_type: How to render file paths in report output
+                (ABSOLUTE or RELATIVE to ``root_path``). Default: RELATIVE.
+            root_path: Project root used as the base for RELATIVE path
+                formatting. Required for RELATIVE to have an effect.
         """
         self.verbose = verbose
         self.detailed = detailed
         self.depth = depth
         self._console = console
+        self.filepath_type = filepath_type
+        self.root_path = Path(root_path).resolve() if root_path is not None else None
 
     @property
     def console(self) -> Console:

@@ -26,12 +26,14 @@ Usage:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 
+from common import FilepathType, format_path
 from models import AssemblyNamespaceStats, NamespaceAnalysisReport
 
 from .base import BaseReporter
@@ -49,6 +51,8 @@ class NamespaceReporter(BaseReporter):
         allow_child_namespaces: bool = True,
         show_unmatched_paths: bool = True,
         console: Console | None = None,
+        filepath_type: FilepathType = FilepathType.RELATIVE,
+        root_path: Path | None = None,
     ):
         """Initialize namespace reporter.
 
@@ -58,10 +62,21 @@ class NamespaceReporter(BaseReporter):
             show_unmatched_paths: Include the `unmatchedPaths` list in the JSON report
                 (default: True). Set False to keep the JSON compact.
             console: Rich Console instance (uses shared instance if not provided)
+            filepath_type: Render paths as ABSOLUTE or RELATIVE (to ``root_path``).
+            root_path: Project root used as the base for RELATIVE path formatting.
         """
-        super().__init__(verbose=verbose, console=console)
+        super().__init__(
+            verbose=verbose,
+            console=console,
+            filepath_type=filepath_type,
+            root_path=root_path,
+        )
         self.allow_child_namespaces = allow_child_namespaces
         self.show_unmatched_paths = show_unmatched_paths
+
+    def _fmt(self, path: Path | str) -> str:
+        """Format a path per the reporter's filepath_type/root_path settings."""
+        return format_path(path, self.filepath_type, self.root_path)
 
     def print_console_report(self, report: NamespaceAnalysisReport) -> None:
         """Print formatted namespace report to console.
@@ -161,7 +176,7 @@ class NamespaceReporter(BaseReporter):
         if stats.unmatched_files > 0 and stats.unmatched_file_paths:
             console.print(f"[assembly]{stats.assembly_name}[/] - Mismatched files:")
             for path in stats.unmatched_file_paths[:5]:
-                console.print(f"  [path]{path}[/]")
+                console.print(f"  [path]{self._fmt(path)}[/]")
             if len(stats.unmatched_file_paths) > 5:
                 remaining = len(stats.unmatched_file_paths) - 5
                 console.print(f"  [muted]... and {remaining} more[/]")
@@ -170,7 +185,7 @@ class NamespaceReporter(BaseReporter):
         if stats.no_namespace_files > 0 and stats.no_namespace_paths:
             console.print(f"[assembly]{stats.assembly_name}[/] - Files without namespace:")
             for path in stats.no_namespace_paths[:5]:
-                console.print(f"  [path]{path}[/]")
+                console.print(f"  [path]{self._fmt(path)}[/]")
             if len(stats.no_namespace_paths) > 5:
                 remaining = len(stats.no_namespace_paths) - 5
                 console.print(f"  [muted]... and {remaining} more[/]")
@@ -196,11 +211,14 @@ class NamespaceReporter(BaseReporter):
                 "noNamespaceFiles": stats.no_namespace_files,
                 "matchPercentage": round(stats.match_percentage, 2),
                 "compliancePercentage": round(stats.compliance_percentage, 2),
-                "noNamespacePaths": [str(p) for p in stats.no_namespace_paths],
-                "namespaceMismatches": stats.namespace_mismatches,
+                "noNamespacePaths": [self._fmt(p) for p in stats.no_namespace_paths],
+                "namespaceMismatches": {
+                    ns: [self._fmt(p) for p in paths]
+                    for ns, paths in stats.namespace_mismatches.items()
+                },
             }
             if self.show_unmatched_paths:
-                entry["unmatchedPaths"] = [str(p) for p in stats.unmatched_file_paths]
+                entry["unmatchedPaths"] = [self._fmt(p) for p in stats.unmatched_file_paths]
             return entry
 
         return {

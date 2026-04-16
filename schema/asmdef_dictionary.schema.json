@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "asmdef_dictionary.schema.json",
+  "title": "Assembly Definition Dictionary",
+  "description": "Dictionary of Unity assembly definitions with metadata, keyed by GUID.",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^GUID:[a-f0-9]{32}$": {
+      "$ref": "#/$defs/asmdefEntry"
+    },
+    "^_metadata$": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "asmdefEntry": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Assembly name."
+        },
+        "rootNamespace": {
+          "type": "string",
+          "description": "Root namespace declared in the assembly definition."
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GUIDs of referenced assemblies."
+        },
+        "includePlatforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Platforms to include (empty means all)."
+        },
+        "excludePlatforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Platforms to exclude."
+        },
+        "allowUnsafeCode": {
+          "type": "boolean",
+          "description": "Whether unsafe code is allowed."
+        },
+        "overrideReferences": {
+          "type": "boolean",
+          "description": "Whether to override references."
+        },
+        "precompiledReferences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Precompiled assembly references."
+        },
+        "autoReferenced": {
+          "type": "boolean",
+          "description": "Whether the assembly is auto-referenced."
+        },
+        "defineConstraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Define constraints for conditional compilation."
+        },
+        "versionDefines": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Version define expressions."
+        },
+        "noEngineReferences": {
+          "type": "boolean",
+          "description": "Whether engine references are excluded."
+        },
+        "optionalUnityReferences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional Unity module references."
+        },
+        "relativePath": {
+          "type": "string",
+          "description": "Assembly's relative path within the Unity project."
+        },
+        "csFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "C# file paths relative to the assembly root directory."
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "buildDate": {
+          "type": "string",
+          "description": "Date the dictionary was built."
+        },
+        "totalAssemblies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of assemblies in the dictionary."
+        }
+      },
+      "additionalProperties": true,
+      "description": "Dictionary build metadata."
+    }
+  }
+}

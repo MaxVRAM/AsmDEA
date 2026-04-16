@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file_report.schema.json",
+  "title": "File Analysis Report",
+  "description": "C# file to assembly mapping results for Unity assembly definitions.",
+  "type": "object",
+  "required": ["summary", "assemblies"],
+  "additionalProperties": false,
+  "properties": {
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "assemblies": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/assemblyFileMapping"
+      },
+      "propertyNames": {
+        "pattern": "^GUID:[a-f0-9]{32}$"
+      },
+      "description": "Per-assembly file mapping results, keyed by GUID."
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": ["totalCsFiles", "assignedFiles", "orphanedFiles"],
+      "additionalProperties": false,
+      "properties": {
+        "totalCsFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of C# files found in the project."
+        },
+        "assignedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files successfully assigned to an assembly."
+        },
+        "orphanedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files not owned by any assembly."
+        }
+      }
+    },
+    "assemblyFileMapping": {
+      "type": "object",
+      "required": ["name", "fileCount", "files", "relativePath"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Assembly name."
+        },
+        "fileCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of C# files belonging to this assembly."
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths of C# files belonging to this assembly."
+        },
+        "relativePath": {
+          "type": "string",
+          "description": "Assembly's relative path within the Unity project."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cycle_report.schema.json",
+  "title": "Cycle Report",
+  "description": "Cycle detection analysis results for Unity assembly definitions.",
+  "type": "object",
+  "required": ["totalCycles", "totalNodes", "affectedNodes", "cycles"],
+  "additionalProperties": false,
+  "properties": {
+    "totalCycles": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of circular dependency cycles detected."
+    },
+    "totalNodes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of nodes (assemblies) in the dependency graph."
+    },
+    "affectedNodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Assembly names that are part of at least one cycle."
+    },
+    "cycles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/cycleDetail"
+      },
+      "description": "List of detected cycles with details."
+    }
+  },
+  "$defs": {
+    "cycleDetail": {
+      "type": "object",
+      "required": ["cycleId", "cyclePath", "cycleLength"],
+      "additionalProperties": false,
+      "properties": {
+        "cycleId": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unique identifier for this cycle."
+        },
+        "cyclePath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "description": "Assembly names forming the cycle. First and last nodes are the same."
+        },
+        "cycleLength": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of unique nodes in the cycle."
+        },
+        "dependencyTree": {
+          "oneOf": [
+            { "$ref": "#/$defs/dependencyNode" },
+            { "type": "null" }
+          ],
+          "description": "Nested dependency tree rooted at the cycle start node."
+        }
+      }
+    },
+    "dependencyNode": {
+      "type": "object",
+      "required": ["name", "inCycle", "dependencies"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Assembly name."
+        },
+        "inCycle": {
+          "type": "boolean",
+          "description": "Whether this node is part of the cycle."
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependencyNode"
+          },
+          "description": "Child dependency nodes."
+        }
+      }
+    }
+  }
+}

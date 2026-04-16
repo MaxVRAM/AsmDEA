@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "namespace_report.schema.json",
+  "title": "Namespace Report",
+  "description": "Namespace compliance validation results for Unity assembly definitions.",
+  "type": "object",
+  "required": ["summary", "assemblies", "problemAssemblies"],
+  "additionalProperties": false,
+  "properties": {
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "assemblies": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/assemblyNamespaceStats"
+      },
+      "propertyNames": {
+        "pattern": "^GUID:[a-f0-9]{32}$"
+      },
+      "description": "Per-assembly namespace compliance results, keyed by GUID."
+    },
+    "problemAssemblies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Names of assemblies with namespace compliance issues."
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": [
+        "totalAssemblies",
+        "totalFiles",
+        "matchedFiles",
+        "mismatchedFiles",
+        "filesWithoutNamespace",
+        "overallMatchPercentage",
+        "allowChildNamespaces"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "totalAssemblies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of assemblies analysed."
+        },
+        "totalFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of C# files analysed."
+        },
+        "matchedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files whose namespace matches the assembly root namespace."
+        },
+        "mismatchedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files whose namespace does not match."
+        },
+        "filesWithoutNamespace": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files with no namespace declaration."
+        },
+        "overallMatchPercentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of files with matching namespaces."
+        },
+        "allowChildNamespaces": {
+          "type": "boolean",
+          "description": "Whether child namespaces were considered valid matches."
+        }
+      }
+    },
+    "assemblyNamespaceStats": {
+      "type": "object",
+      "required": [
+        "name",
+        "rootNamespace",
+        "totalFiles",
+        "matchedFiles",
+        "childNamespaceFiles",
+        "unmatchedFiles",
+        "noNamespaceFiles",
+        "matchPercentage",
+        "compliancePercentage",
+        "noNamespacePaths",
+        "namespaceMismatches"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Assembly name."
+        },
+        "rootNamespace": {
+          "type": "string",
+          "description": "Expected root namespace for the assembly."
+        },
+        "totalFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total C# files in this assembly."
+        },
+        "matchedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files with exact namespace match."
+        },
+        "childNamespaceFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files using a child namespace of the root."
+        },
+        "unmatchedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files with a mismatched namespace."
+        },
+        "noNamespaceFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files with no namespace declaration."
+        },
+        "matchPercentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of files with exact namespace match."
+        },
+        "compliancePercentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of files considered compliant (exact + child if allowed)."
+        },
+        "noNamespacePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths of files without a namespace declaration."
+        },
+        "namespaceMismatches": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Map of incorrect namespace to the file paths using it."
+        },
+        "unmatchedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths of files with mismatched namespaces. Only present when show_unmatched_paths is enabled."
+        }
+      }
+    }
+  }
+}

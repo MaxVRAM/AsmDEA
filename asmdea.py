@@ -399,6 +399,9 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
     )
     reporter.print_console_report(result)
 
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    reporter.save_json_report(result, args.output_dir / "file_report.json")
+
     # Save updated dictionary with file mappings
     save_json_report(result["asmdef_dict"], args.dict_file)
     print_section_complete(f"Updated dictionary saved to [path]{args.dict_file}[/]")

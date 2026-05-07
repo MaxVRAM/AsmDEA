@@ -31,28 +31,34 @@ A Python toolkit for analysing Unity Assembly Definition (`.asmdef`) files, dete
 
 1. Clone the repository:
 
-```bash
-git clone <repository-url>
-cd AsmDEA
-```
+    ```bash
+    git clone <repository-url>
+    cd AsmDEA
+    ```
 
-1. Create and activate virtual environment:
+2. Create and activate virtual environment:
 
-```bash
-python -m venv .venv
+    ```bash
+    python -m venv .venv
 
-# On Windows (PowerShell)
-.venv\Scripts\Activate.ps1
+    # On Windows (PowerShell)
+    .venv\Scripts\Activate.ps1
 
-# On macOS/Linux
-source .venv/bin/activate
-```
+    # On macOS/Linux
+    source .venv/bin/activate
+    ```
 
-1. Install dependencies:
+3. Install dependencies:
 
-```bash
-pip install -r requirements.txt
-```
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4. Install package in editable mode for development:
+
+    ```bash
+    pip install -e .
+    ```
 
 ## Quick Start (CLI)
 

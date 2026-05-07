@@ -1,6 +1,6 @@
 """Common utilities for asmdef analysis."""
 
-from .asmdef_dict import filter_assemblies, get_metadata, set_metadata
+from .asmdef_dict import apply_filters, apply_namespace_filters, filter_assemblies, get_metadata, set_metadata
 from .backup import BackupInfo, BackupManager, BackupManifest
 from .constants import (
     ASMDEF_EXTENSION,
@@ -65,6 +65,8 @@ __all__ = [
     "validate_directory",
     "FilepathType",
     "format_path",
+    "apply_filters",
+    "apply_namespace_filters",
     "filter_assemblies",
     "get_metadata",
     "set_metadata",

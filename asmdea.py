@@ -34,6 +34,7 @@ except ImportError:
 from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
 from common import (
     FilepathType,
+    apply_filters,
     configure_console,
     get_console,
     get_logger,
@@ -64,6 +65,12 @@ def get_env_bool(key: str, default: bool) -> bool:
     return value.lower() in ("true", "1", "yes", "on")
 
 
+def get_env_list(key: str) -> list[str]:
+    """Parse a comma-separated env variable into a list of stripped strings."""
+    value = os.environ.get(key, "")
+    return [s.strip() for s in value.split(",") if s.strip()]
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser with all commands."""
     parser = argparse.ArgumentParser(
@@ -85,6 +92,9 @@ Environment Variables (from .env file):
   FILEPATH_TYPE          - File path format in reports: absolute|relative (default: relative)
   DETAILED               - Show detailed dependency trees (true/false, default: false)
   DEPTH                  - Max depth for dependency tree visualization (default: 2)
+  FILTER_ROOT            - Comma-separated top-level namespace segments to exclude (e.g. Unity,UnityEngine)
+  FILTER_ANY             - Comma-separated namespace segments to exclude at any depth (e.g. Editor,Tests)
+  FILTER_PATH            - Comma-separated relative path prefixes to exclude entirely (e.g. Library/PackageCache)
   LOG_LEVEL              - Logging level (DEBUG/INFO/WARNING/ERROR)
         """,
     )
@@ -132,6 +142,27 @@ Environment Variables (from .env file):
         default=get_env_or_default("FILEPATH_TYPE", "relative"),
         help="File path format in reports: 'absolute' or 'relative' to the "
              "project path (default: relative)",
+    )
+    project_args.add_argument(
+        "--filter-root",
+        nargs="*",
+        default=get_env_list("FILTER_ROOT"),
+        metavar="NS",
+        help="Exclude assemblies whose top-level namespace segment matches (e.g. Unity)",
+    )
+    project_args.add_argument(
+        "--filter-any",
+        nargs="*",
+        default=get_env_list("FILTER_ANY"),
+        metavar="NS",
+        help="Exclude assemblies where any namespace segment matches (e.g. Editor)",
+    )
+    project_args.add_argument(
+        "--filter-path",
+        nargs="*",
+        default=get_env_list("FILTER_PATH"),
+        metavar="PATH",
+        help="Exclude assemblies whose relative path starts with any of these prefixes (e.g. Library/PackageCache)",
     )
 
     # analyze command (full pipeline)
@@ -357,6 +388,12 @@ def cmd_detect_cycles(args: argparse.Namespace, logger: Any) -> int:
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
 
     analyser = CycleAnalyser(asmdef_dict)
     report = analyser.analyse(max_depth=args.depth)
@@ -421,6 +458,12 @@ def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
 
     analyser = NamespaceAnalyser(asmdef_dict, args.project_path, args.allow_child_namespaces)
     report = analyser.analyse()

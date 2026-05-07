@@ -1,10 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
+import path from 'node:path'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'ASMDEA_')
-  const reportsDir = env.ASMDEA_REPORTS_DIR
+  const parentDir = path.resolve(process.cwd(), '..')
+  const env = loadEnv(mode, parentDir, '')
+  const reportsDir = env.OUTPUT_PATH && path.resolve(parentDir, env.OUTPUT_PATH)
 
   return {
     plugins: [

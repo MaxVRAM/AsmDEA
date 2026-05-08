@@ -44,10 +44,10 @@ export default function App() {
         <div className="max-w-[1600px] mx-auto px-8 py-5 flex items-center justify-between">
           <div className="flex items-baseline gap-5">
             <div className="text-[10px] uppercase tracking-[0.25em] text-ink-400 font-mono">
-              Unity · assembly analysis
+              Open up, it's the
             </div>
             <h1 className="font-display text-[28px] leading-none italic tracking-tight">
-              Codebase atlas
+              Assembly D.E.A.
             </h1>
           </div>
           <div className="flex items-center gap-5">

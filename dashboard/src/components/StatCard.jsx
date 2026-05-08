@@ -15,14 +15,14 @@ export function StatCard({ label, value, sublabel, tone = 'default' }) {
   }
   return (
     <div className={`border ${toneClasses[tone]} bg-ink-900/40 p-6 rounded`}>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-3">
+      <div className="ijm-eyebrow text-ink-400 mb-3">
         {label}
       </div>
-      <div className={`text-[40px] leading-none font-display ${valueClasses[tone]}`}>
+      <div className={`ijm-metric text-[40px] leading-none font-display ${valueClasses[tone]}`}>
         {value}
       </div>
       {sublabel && (
-        <div className="text-[11px] text-ink-400 mt-3 font-mono">{sublabel}</div>
+        <div className="ijm-code text-[11px] text-ink-400 mt-3">{sublabel}</div>
       )}
     </div>
   )

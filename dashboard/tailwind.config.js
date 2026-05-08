@@ -4,9 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace']
+        display: ['var(--ijm-font-sans)'],
+        sans:    ['var(--ijm-font-sans)'],
+        mono:    ['var(--ijm-font-mono)'],
       },
       colors: {
         ink: {

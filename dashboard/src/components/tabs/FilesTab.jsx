@@ -78,11 +78,11 @@ export function FilesTab({ reports }) {
           <div className="mt-4 border border-ink-700 rounded bg-ink-900/40 p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-1">
+                <div className="ijm-eyebrow text-ink-400 mb-1">
                   Selected
                 </div>
-                <div className="font-mono text-sm">{selected.name}</div>
-                <div className="text-[11px] text-ink-400 font-mono mt-1">{selected.path}</div>
+                <div className="ijm-code text-sm">{selected.name}</div>
+                <div className="ijm-code text-[11px] text-ink-400 mt-1">{selected.path}</div>
               </div>
               <button
                 onClick={() => setSelected(null)}
@@ -91,10 +91,10 @@ export function FilesTab({ reports }) {
                 ✕
               </button>
             </div>
-            <div className="text-[11px] text-ink-400 font-mono mb-2">
+            <div className="ijm-code text-[11px] text-ink-400 mb-2">
               {selected.size} file{selected.size === 1 ? '' : 's'}
             </div>
-            <div className="max-h-48 overflow-y-auto text-[11px] font-mono text-ink-300 space-y-0.5">
+            <div className="max-h-48 overflow-y-auto ijm-code text-[11px] text-ink-300 space-y-0.5">
               {(selected.files ?? []).slice(0, 100).map((f, i) => (
                 <div key={i}>{f}</div>
               ))}
@@ -120,13 +120,13 @@ export function FilesTab({ reports }) {
               <XAxis
                 type="number"
                 stroke="#8a8880"
-                tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }}
+                tick={{ fontSize: 11, fontFamily: 'JetBrains Mono' }}
               />
               <YAxis
                 type="category"
                 dataKey="name"
                 stroke="#8a8880"
-                tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono' }}
+                tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }}
                 width={220}
               />
               <Tooltip content={<TooltipBox />} cursor={{ fill: '#1c1c21' }} />
@@ -169,7 +169,7 @@ function TreemapNode(props) {
           y={y + 20}
           fill="#0a0a0b"
           fontSize={11}
-          fontFamily="IBM Plex Mono"
+          fontFamily="JetBrains Mono"
           fontWeight={500}
         >
           {truncate(name, Math.floor(width / 7))}
@@ -181,7 +181,7 @@ function TreemapNode(props) {
           y={y + 36}
           fill="#0a0a0b"
           fontSize={10}
-          fontFamily="IBM Plex Mono"
+          fontFamily="JetBrains Mono"
           opacity={0.7}
         >
           {size} file{size === 1 ? '' : 's'}
@@ -200,7 +200,7 @@ function TooltipBox({ active, payload }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="bg-ink-900 border border-ink-600 px-3 py-2 rounded text-xs font-mono shadow-lg">
+    <div className="ijm-code bg-ink-900 border border-ink-600 px-3 py-2 rounded text-xs shadow-lg">
       <div className="text-ink-100">{p.name}</div>
       <div className="text-acid mt-0.5">{p.size} files</div>
     </div>

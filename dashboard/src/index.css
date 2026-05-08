@@ -4,6 +4,43 @@
 
 :root {
   color-scheme: dark;
+
+  /* ===== IJM FONT STACKS ================================================= */
+  --ijm-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --ijm-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  /* ===== WEIGHT TOKENS ==================================================== */
+  --ijm-w-regular: 400;
+  --ijm-w-medium:  500;
+  --ijm-w-semi:    600;
+  --ijm-w-bold:    700;
+
+  /* ===== TYPE SCALE (px) ================================================== */
+  --ijm-text-xs:   11px;
+  --ijm-text-sm:   13px;
+  --ijm-text-base: 15px;
+  --ijm-text-md:   16px;
+  --ijm-text-lg:   20px;
+  --ijm-text-xl:   24px;
+  --ijm-text-2xl:  28px;
+
+  /* ===== LINE HEIGHTS ===================================================== */
+  --ijm-leading-tight:   1.15;
+  --ijm-leading-snug:    1.3;
+  --ijm-leading-normal:  1.5;
+  --ijm-leading-relaxed: 1.65;
+
+  /* ===== LETTER SPACING =================================================== */
+  --ijm-track-tight:   -0.01em;
+  --ijm-track-normal:   0;
+  --ijm-track-wide:     0.04em;
+  --ijm-track-eyebrow:  0.08em;
+
+  /* ===== CODE-SPECIFIC ==================================================== */
+  --ijm-code-size:      13px;
+  --ijm-code-leading:   1.65;
+  --ijm-code-padding-x: 16px;
+  --ijm-code-padding-y: 14px;
 }
 
 html,
@@ -14,7 +51,7 @@ body,
 
 body {
   @apply bg-ink-950 text-ink-100 font-sans antialiased;
-  font-feature-settings: 'ss01', 'cv11';
+  font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
 }
 
 /* Scrollbars */
@@ -61,4 +98,137 @@ body::before {
   opacity: 0.02;
   z-index: 1;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* =========================================================================
+   IJM SEMANTIC TYPE CLASSES — Inter + JetBrains Mono design system
+   Placed in @layer components so Tailwind utilities take precedence
+   when you need to override a specific property on a given element.
+   ========================================================================= */
+
+@layer components {
+  /* Headings ---------------------------------------------------------------- */
+  .ijm-h1 {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-bold);
+    font-size: var(--ijm-text-2xl);
+    line-height: var(--ijm-leading-tight);
+    letter-spacing: var(--ijm-track-tight);
+  }
+  .ijm-h2 {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-semi);
+    font-size: var(--ijm-text-xl);
+    line-height: var(--ijm-leading-tight);
+    letter-spacing: var(--ijm-track-tight);
+  }
+  .ijm-h3 {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-semi);
+    font-size: var(--ijm-text-lg);
+    line-height: var(--ijm-leading-snug);
+    letter-spacing: var(--ijm-track-normal);
+  }
+  .ijm-h4 {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-semi);
+    font-size: var(--ijm-text-md);
+    line-height: var(--ijm-leading-snug);
+    letter-spacing: var(--ijm-track-normal);
+  }
+
+  /* Body text --------------------------------------------------------------- */
+  .ijm-body {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-regular);
+    font-size: var(--ijm-text-base);
+    line-height: var(--ijm-leading-normal);
+    letter-spacing: var(--ijm-track-normal);
+  }
+  .ijm-body-sm {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-regular);
+    font-size: var(--ijm-text-sm);
+    line-height: var(--ijm-leading-normal);
+    letter-spacing: var(--ijm-track-normal);
+  }
+
+  /* Labels and captions ----------------------------------------------------- */
+  .ijm-eyebrow {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-semi);
+    font-size: var(--ijm-text-xs);
+    line-height: 1;
+    letter-spacing: var(--ijm-track-eyebrow);
+    text-transform: uppercase;
+  }
+  .ijm-caption {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-medium);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  /* Code and mono ----------------------------------------------------------- */
+  .ijm-code {
+    font-family: var(--ijm-font-mono);
+    font-weight: var(--ijm-w-regular);
+    font-size: var(--ijm-code-size);
+    line-height: var(--ijm-code-leading);
+    font-variant-ligatures: contextual;
+    letter-spacing: var(--ijm-track-normal);
+  }
+  .ijm-pre {
+    font-family: var(--ijm-font-mono);
+    font-weight: var(--ijm-w-regular);
+    font-size: var(--ijm-code-size);
+    line-height: var(--ijm-code-leading);
+    font-variant-ligatures: contextual;
+    letter-spacing: var(--ijm-track-normal);
+    padding: var(--ijm-code-padding-y) var(--ijm-code-padding-x);
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  /* Metrics (tabular numbers for stats/counts) ------------------------------ */
+  .ijm-metric {
+    font-family: var(--ijm-font-mono);
+    font-weight: var(--ijm-w-medium);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--ijm-track-normal);
+  }
+
+  /* Node labels (graph/diagram identifiers) --------------------------------- */
+  .ijm-node-label {
+    font-family: var(--ijm-font-mono);
+    font-weight: var(--ijm-w-medium);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: var(--ijm-track-normal);
+    display: inline-block;
+  }
+
+  /* Badge (status pills) ---------------------------------------------------- */
+  .ijm-badge {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-medium);
+    font-size: var(--ijm-text-xs);
+    line-height: 1;
+    letter-spacing: var(--ijm-track-wide);
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+
+  /* Root reset -------------------------------------------------------------- */
+  .ijm-root {
+    font-family: var(--ijm-font-sans);
+    font-weight: var(--ijm-w-regular);
+    font-size: var(--ijm-text-base);
+    line-height: var(--ijm-leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
+  }
 }

@@ -77,14 +77,14 @@ export function NamespacesTab({ reports }) {
       <section>
         <div className="flex items-end justify-between mb-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-ink-400 font-mono mb-2">
+            <div className="ijm-eyebrow text-ink-400 mb-2">
               Overall match
             </div>
-            <div className="font-display text-[40px] leading-none italic">
+            <div className="ijm-metric text-[40px] leading-none font-display italic">
               {formatPercent(ns.summary.overallMatchPercentage)}
             </div>
           </div>
-          <div className="text-[11px] font-mono text-ink-400">
+          <div className="ijm-code text-[11px] text-ink-400">
             child namespaces: {ns.summary.allowChildNamespaces ? 'allowed' : 'strict'}
           </div>
         </div>
@@ -102,13 +102,13 @@ export function NamespacesTab({ reports }) {
             placeholder="filter by name or namespace…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm font-mono placeholder-ink-500 focus:outline-none focus:border-acid/60"
+            className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-acid/60"
           />
         </div>
 
         <div className="border border-ink-700 rounded overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-ink-900 text-ink-400 text-[10px] uppercase tracking-[0.15em] font-mono">
+            <thead className="bg-ink-900 text-ink-400 ijm-eyebrow">
               <tr>
                 <th className="w-10" />
                 <SortableTh k="name" sort={sort} onSort={toggleSort}>Assembly</SortableTh>
@@ -130,14 +130,14 @@ export function NamespacesTab({ reports }) {
                       <td className="pl-4 py-3">
                         {isOpen ? <ChevronDown size={14} className="text-ink-400" /> : <ChevronRight size={14} className="text-ink-400" />}
                       </td>
-                      <td className="py-3 font-mono text-xs">
+                      <td className="py-3 ijm-code text-xs">
                         {isProblem && <span className="inline-block w-1.5 h-1.5 rounded-full bg-danger mr-2 align-middle" />}
                         {row.name}
                       </td>
-                      <td className="py-3 font-mono text-xs text-ink-300">
+                      <td className="py-3 ijm-code text-xs text-ink-300">
                         {row.rootNamespace || <span className="text-ink-500 italic">none</span>}
                       </td>
-                      <td className="py-3 text-right font-mono text-xs">{formatNumber(row.totalFiles)}</td>
+                      <td className="py-3 text-right ijm-metric text-xs">{formatNumber(row.totalFiles)}</td>
                       <td className="py-3 pr-4 text-right">
                         <CompliancePill value={row.compliancePercentage} />
                       </td>
@@ -154,7 +154,7 @@ export function NamespacesTab({ reports }) {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-ink-500 text-sm font-mono">
+                  <td colSpan={5} className="text-center py-10 text-ink-500 ijm-code text-sm">
                     no assemblies match the filter
                   </td>
                 </tr>
@@ -183,7 +183,7 @@ function SortableTh({ k, sort, onSort, align = 'left', children }) {
 }
 
 function CompliancePill({ value }) {
-  if (value == null) return <span className="text-ink-500 text-xs font-mono">—</span>
+  if (value == null) return <span className="ijm-code text-ink-500 text-xs">—</span>
   const tone =
     value >= 95
       ? 'bg-success/15 text-success border-success/30'
@@ -191,7 +191,7 @@ function CompliancePill({ value }) {
       ? 'bg-warning/15 text-warning border-warning/30'
       : 'bg-danger/15 text-danger border-danger/30'
   return (
-    <span className={`inline-block px-2 py-0.5 rounded border font-mono text-[11px] ${tone}`}>
+    <span className={`ijm-badge px-2 py-0.5 rounded border ${tone}`}>
       {formatPercent(value)}
     </span>
   )
@@ -213,7 +213,7 @@ function AssemblyDetail({ row }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-4 gap-4 text-xs font-mono">
+      <div className="grid grid-cols-4 gap-4 ijm-code text-xs">
         <DetailCell label="Matched" value={row.matchedFiles} />
         <DetailCell label="Child ns" value={row.childNamespaceFiles} />
         <DetailCell label="Mismatched" value={row.unmatchedFiles} tone={row.unmatchedFiles > 0 ? 'danger' : 'default'} />
@@ -222,14 +222,14 @@ function AssemblyDetail({ row }) {
 
       {hasMismatches && (
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-2 font-mono">
+          <div className="ijm-eyebrow text-ink-400 mb-2">
             Mismatched namespaces
           </div>
           <div className="space-y-2">
             {mismatches.map(([bad, paths]) => (
               <div key={bad} className="border border-ink-700 rounded p-3 bg-ink-900/40">
-                <div className="font-mono text-xs text-danger mb-2">{bad}</div>
-                <div className="text-[11px] text-ink-400 font-mono space-y-0.5">
+                <div className="ijm-code text-xs text-danger mb-2">{bad}</div>
+                <div className="ijm-code text-[11px] text-ink-400 space-y-0.5">
                   {paths.slice(0, 5).map((p, i) => (
                     <div key={i}>{p}</div>
                   ))}
@@ -245,10 +245,10 @@ function AssemblyDetail({ row }) {
 
       {hasMissing && (
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-2 font-mono">
+          <div className="ijm-eyebrow text-ink-400 mb-2">
             Files without a namespace
           </div>
-          <div className="text-[11px] text-ink-400 font-mono space-y-0.5 border border-ink-700 rounded p-3 bg-ink-900/40">
+          <div className="ijm-code text-[11px] text-ink-400 space-y-0.5 border border-ink-700 rounded p-3 bg-ink-900/40">
             {row.noNamespacePaths.slice(0, 5).map((p, i) => (
               <div key={i}>{p}</div>
             ))}
@@ -260,7 +260,7 @@ function AssemblyDetail({ row }) {
       )}
 
       {!hasMismatches && !hasMissing && (
-        <div className="text-xs text-ink-400 font-mono italic">All files in this assembly are compliant.</div>
+        <div className="ijm-code text-xs text-ink-400 italic">All files in this assembly are compliant.</div>
       )}
     </div>
   )
@@ -274,8 +274,8 @@ function DetailCell({ label, value, tone = 'default' }) {
   }
   return (
     <div>
-      <div className="text-ink-500 text-[10px] uppercase tracking-[0.15em] mb-1">{label}</div>
-      <div className={`text-lg ${tones[tone]}`}>{value}</div>
+      <div className="ijm-eyebrow text-ink-500 mb-1">{label}</div>
+      <div className={`ijm-metric text-lg ${tones[tone]}`}>{value}</div>
     </div>
   )
 }

@@ -43,7 +43,7 @@ export default function App() {
       <header className="border-b border-ink-700 bg-ink-900/60 backdrop-blur sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-8 py-5 flex items-center justify-between">
           <div className="flex items-baseline gap-5">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-ink-400 font-mono">
+            <div className="ijm-code text-[10px] uppercase tracking-[0.25em] text-ink-400">
               Open up, it's the
             </div>
             <h1 className="font-display text-[28px] leading-none italic tracking-tight">
@@ -52,7 +52,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-5">
             {loadedAt && (
-              <div className="text-xs text-ink-400 font-mono">
+              <div className="ijm-code text-xs text-ink-400">
                 updated <span className="text-ink-200">{formatTime(loadedAt)}</span>
               </div>
             )}
@@ -77,7 +77,7 @@ export default function App() {
         {active === 'files' && <FilesTab reports={reports} />}
       </main>
 
-      <footer className="border-t border-ink-700 py-4 px-8 text-[11px] text-ink-500 font-mono flex justify-between">
+      <footer className="border-t border-ink-700 py-4 px-8 ijm-code text-[11px] text-ink-500 flex justify-between">
         <span>assembly-analysis · locally served</span>
         <span>reports read from /public/reports/</span>
       </footer>

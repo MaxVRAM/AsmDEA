@@ -66,7 +66,7 @@ export function DependenciesTab({ reports }) {
           padding: '10px 12px',
           borderRadius: 4,
           fontSize: 11,
-          fontFamily: 'IBM Plex Mono, monospace',
+          fontFamily: 'JetBrains Mono, monospace',
           width: NODE_W
         }
       }
@@ -108,7 +108,7 @@ export function DependenciesTab({ reports }) {
       <div className="flex items-center gap-6">
         <Filter label="Hide Unity built-ins" checked={hideUnityBuiltins} onChange={setHideUnityBuiltins} />
         <Filter label="Only cycle nodes" checked={onlyCycles} onChange={setOnlyCycles} />
-        <div className="ml-auto text-xs font-mono text-ink-400">
+        <div className="ml-auto ijm-code text-xs text-ink-400">
           {graph.nodes.length} nodes · {graph.edges.length} edges
         </div>
       </div>
@@ -160,7 +160,7 @@ function Filter({ label, checked, onChange }) {
 
 function Legend() {
   return (
-    <div className="flex items-center gap-6 text-[11px] font-mono text-ink-400">
+    <div className="flex items-center gap-6 ijm-code text-[11px] text-ink-400">
       <div className="flex items-center gap-2">
         <span className="inline-block w-4 h-3 border border-ink-600 bg-ink-800" /> assembly
       </div>
@@ -183,10 +183,10 @@ function NodeInspector({ node, onClose }) {
     <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-1">
+          <div className="ijm-eyebrow text-ink-400 mb-1">
             Assembly
           </div>
-          <div className="font-mono text-sm break-all">{node.id}</div>
+          <div className="ijm-code text-sm break-all">{node.id}</div>
         </div>
         <button
           onClick={onClose}
@@ -207,7 +207,7 @@ function NodeInspector({ node, onClose }) {
       </dl>
 
       {node.data?.inCycle && (
-        <div className="mt-5 border border-danger/40 bg-danger/5 text-danger px-3 py-2 rounded text-[11px] font-mono">
+        <div className="mt-5 border border-danger/40 bg-danger/5 text-danger px-3 py-2 rounded ijm-code text-[11px]">
           ⚠ participates in a cycle
         </div>
       )}
@@ -218,7 +218,7 @@ function NodeInspector({ node, onClose }) {
 function Field({ label, value, mono }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-mono mb-1">
+      <dt className="ijm-eyebrow text-ink-400 mb-1">
         {label}
       </dt>
       <dd className={`text-ink-200 ${mono ? 'font-mono break-all' : ''}`}>{value}</dd>

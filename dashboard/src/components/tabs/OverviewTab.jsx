@@ -21,7 +21,7 @@ export function OverviewTab({ reports }) {
   return (
     <div className="space-y-12">
       <div className={`border-l-2 pl-6 py-3 ${health.border}`}>
-        <div className="text-[10px] uppercase tracking-[0.25em] text-ink-400 font-mono mb-2">
+        <div className="ijm-eyebrow text-ink-400 mb-2">
           Project health
         </div>
         <div className={`font-display text-[32px] leading-tight italic ${health.color}`}>
@@ -75,7 +75,7 @@ export function OverviewTab({ reports }) {
               <div key={key} className="flex items-center justify-between px-5 py-3.5">
                 <div>
                   <div className="text-sm">{label}</div>
-                  <div className="text-[11px] text-ink-400 font-mono mt-0.5">{r.path}</div>
+                  <div className="ijm-code text-[11px] text-ink-400 mt-0.5">{r.path}</div>
                 </div>
                 <StatusDot status={r.status} error={r.error} />
               </div>
@@ -98,7 +98,7 @@ function StatusDot({ status, error }) {
   return (
     <div className="flex items-center gap-2.5" title={error ?? ''}>
       <div className={`w-2 h-2 rounded-full ${s.colour}`} />
-      <span className="text-[11px] font-mono uppercase tracking-[0.15em] text-ink-400">
+      <span className="ijm-eyebrow text-ink-400">
         {s.label}
       </span>
     </div>

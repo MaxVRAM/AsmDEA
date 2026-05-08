@@ -94,6 +94,24 @@ export function DependenciesTab({ reports }) {
     return { nodes: layoutGraph(nodes, edges), edges }
   }, [asmdef, cycles, hideUnityBuiltins, onlyCycles])
 
+  const selectedId = selected?.id ?? null
+
+  const displayNodes = graph
+    ? graph.nodes.map(n =>
+        n.id === selectedId
+          ? { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
+          : n
+      )
+    : []
+
+  const displayEdges = graph
+    ? graph.edges.map(e =>
+        selectedId && (e.source === selectedId || e.target === selectedId)
+          ? { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
+          : e
+      )
+    : []
+
   if (!asmdef) {
     return (
       <EmptyState
@@ -116,8 +134,8 @@ export function DependenciesTab({ reports }) {
       <div className="flex gap-4">
         <div className="flex-1 h-[calc(100vh-280px)] min-h-[500px] border border-ink-700 rounded bg-ink-900/40 overflow-hidden">
           <ReactFlow
-            nodes={graph.nodes}
-            edges={graph.edges}
+            nodes={displayNodes}
+            edges={displayEdges}
             fitView
             minZoom={0.1}
             maxZoom={2}

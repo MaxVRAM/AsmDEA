@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:rich.readthedocs.io)",
-      "Bash(python -m venv:*)"
+      "Bash(python -m venv:*)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/ -x -q)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Source\\\\Personal\\\\AsmDEA\\\\dashboard\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)"
     ]
   }
 }

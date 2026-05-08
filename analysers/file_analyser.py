@@ -23,6 +23,7 @@ Usage:
     updated_dict = analyser.analyse(asmdef_dict)
 """
 
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -31,15 +32,17 @@ from typing import Any
 class FileAnalyser:
     """Analyses C# file ownership by assemblies."""
 
-    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path):
+    def __init__(self, asmdef_dict: dict[str, Any], root_path: Path, filter_paths: list[str] | None = None):
         """Initialize file analyser.
 
         Args:
             asmdef_dict: Dictionary of assembly definitions
             root_path: Root directory path
+            filter_paths: Relative path prefixes to exclude from scanning entirely
         """
         self.asmdef_dict = asmdef_dict
         self.root_path = Path(root_path).resolve()
+        self.filter_paths = [p.replace("\\", "/").rstrip("/") for p in (filter_paths or [])]
         self.path_to_guid = self._build_path_to_guid_mapping()
 
     def _build_path_to_guid_mapping(self) -> dict[Path, str]:
@@ -94,15 +97,44 @@ class FileAnalyser:
         """
         return any("~" in part for part in path.parts)
 
+    def _is_filtered_path(self, rel_str: str) -> bool:
+        """Check if a relative path matches any filter_paths prefix."""
+        if not self.filter_paths:
+            return False
+        norm = rel_str.replace("\\", "/")
+        return any(norm == p or norm.startswith(p + "/") for p in self.filter_paths)
+
+    def _iter_cs_files(self) -> list[Path]:
+        """Walk the project tree, skipping filtered and Unity-hidden (~) directories."""
+        result = []
+        for dirpath, dirnames, filenames in os.walk(self.root_path):
+            dir_path = Path(dirpath)
+            try:
+                rel_str = str(dir_path.relative_to(self.root_path)).replace("\\", "/")
+            except ValueError:
+                dirnames.clear()
+                continue
+
+            # Prune filtered directories so os.walk never descends into them
+            if self._is_filtered_path(rel_str):
+                dirnames.clear()
+                continue
+
+            # Prune Unity-hidden directories (e.g. Samples~)
+            dirnames[:] = [d for d in dirnames if "~" not in d]
+
+            for filename in filenames:
+                if filename.endswith(".cs"):
+                    result.append(dir_path / filename)
+        return result
+
     def analyse(self) -> dict[str, Any]:
         """Perform complete file ownership analysis.
 
         Returns:
             Dictionary with analysis results and statistics
         """
-        # Find all .cs files
-        all_cs_files = self.root_path.rglob("*.cs")
-        cs_files = [f for f in all_cs_files if not self.should_ignore_path(f.relative_to(self.root_path))]
+        cs_files = self._iter_cs_files()
 
         # Assign files to assemblies
         assembly_files = defaultdict(list)

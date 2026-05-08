@@ -374,6 +374,13 @@ def cmd_build_dict(args: argparse.Namespace, logger: Any) -> int:
         console.print("[error]Failed to build dictionary - no assemblies found[/]")
         return 1
 
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
+
     save_json_report(asmdef_dict, args.dict_file)
     print_section_complete(f"Dictionary saved to [path]{args.dict_file}[/] ([count]{len(asmdef_dict)}[/] assemblies)")
     return 0
@@ -425,8 +432,14 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
         return 2
 
     asmdef_dict = load_asmdef_dict(args.dict_file)
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
 
-    analyser = FileAnalyser(asmdef_dict, args.project_path)
+    analyser = FileAnalyser(asmdef_dict, args.project_path, filter_paths=getattr(args, "filter_path", None) or [])
     result = analyser.analyse()
 
     reporter = FileAnalysisReporter(

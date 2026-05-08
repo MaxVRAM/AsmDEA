@@ -20,12 +20,22 @@ const TABS = [
 export default function App() {
   const [active, setActive] = useState('overview')
   const { reports, loadedAt, refresh } = useReports()
-  const [refreshing, setRefreshing] = useState(false)
+  const [runStatus, setRunStatus] = useState('idle')
 
   async function handleRefresh() {
-    setRefreshing(true)
+    setRunStatus('analysing')
+    try {
+      const res = await fetch('/api/run', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error('Analysis failed:', body.error)
+      }
+    } catch (e) {
+      console.error('Analysis error:', e)
+    }
+    setRunStatus('loading')
     await refresh()
-    setTimeout(() => setRefreshing(false), 300)
+    setRunStatus('idle')
   }
 
   return (
@@ -48,11 +58,11 @@ export default function App() {
             )}
             <button
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={runStatus !== 'idle'}
               className="flex items-center gap-2 px-4 py-2 bg-ink-800 hover:bg-ink-700 active:bg-ink-600 border border-ink-600 rounded text-xs font-medium tracking-wide transition disabled:opacity-50 font-mono uppercase"
             >
-              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-              Refresh
+              <RefreshCw size={13} className={runStatus !== 'idle' ? 'animate-spin' : ''} />
+              {runStatus === 'analysing' ? 'Analysing...' : runStatus === 'loading' ? 'Loading...' : 'Refresh'}
             </button>
           </div>
         </div>

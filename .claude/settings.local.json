@@ -5,7 +5,9 @@
       "Bash(python -m venv:*)",
       "Bash(.venv/Scripts/python.exe -m pytest tests/ -x -q)",
       "Bash(Get-ChildItem -Path \"d:\\\\Source\\\\Personal\\\\AsmDEA\\\\dashboard\" -Force)",
-      "Bash(Select-Object Name, PSIsContainer)"
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(.venv/Scripts/python -m pytest tests/unit/test_filter_path.py -v)",
+      "Bash(.venv/Scripts/python -m pytest --tb=short -q)"
     ]
   }
 }

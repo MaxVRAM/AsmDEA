@@ -1,4 +1,4 @@
-# Codebase atlas
+# Assembly D.E.A. Dashboard
 
 A local dashboard for visualising Unity assembly analysis reports. Built with Vite and React.
 

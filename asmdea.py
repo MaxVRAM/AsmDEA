@@ -162,7 +162,7 @@ Environment Variables (from .env file):
         nargs="*",
         default=get_env_list("FILTER_PATH"),
         metavar="PATH",
-        help="Exclude assemblies whose relative path starts with any of these prefixes (e.g. Library/PackageCache)",
+        help="Exclude assemblies whose path contains any of these segments, matched anywhere in the path (e.g. Library/PackageCache)",
     )
 
     # analyze command (full pipeline)

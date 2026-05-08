@@ -1,4 +1,4 @@
-# Assembly Definition Enforcement Agency (AsmDEA)
+# Assembly D.E.A. (Definition Enforcement Agency)
 
 A Python toolkit for analysing Unity Assembly Definition (`.asmdef`) files, detecting circular dependencies, validating namespace compliance, and mapping C# files to assemblies.
 

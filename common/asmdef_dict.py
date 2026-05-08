@@ -65,7 +65,7 @@ def apply_filters(
         asmdef_dict: Full dictionary including metadata
         filter_root: Exclude assemblies whose top-level namespace segment is in this list
         filter_any: Exclude assemblies where any namespace segment is in this list
-        filter_path: Exclude assemblies whose relativePath starts with any of these prefixes
+        filter_path: Exclude assemblies whose relativePath contains any of these path segments
 
     Returns:
         Filtered dictionary (metadata entries are always preserved)
@@ -85,7 +85,7 @@ def apply_filters(
         # --- path filter ---
         if normalised_paths:
             relative_path = (value.get("relativePath") or "").replace("\\", "/")
-            if any(relative_path == p or relative_path.startswith(p + "/") for p in normalised_paths):
+            if any(("/" + p + "/") in ("/" + relative_path + "/") for p in normalised_paths):
                 continue
 
         # --- namespace filters ---

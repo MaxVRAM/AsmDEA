@@ -98,11 +98,11 @@ class FileAnalyser:
         return any("~" in part for part in path.parts)
 
     def _is_filtered_path(self, rel_str: str) -> bool:
-        """Check if a relative path matches any filter_paths prefix."""
+        """Check if a relative path contains any filter_paths segment."""
         if not self.filter_paths:
             return False
         norm = rel_str.replace("\\", "/")
-        return any(norm == p or norm.startswith(p + "/") for p in self.filter_paths)
+        return any(("/" + p + "/") in ("/" + norm + "/") for p in self.filter_paths)
 
     def _iter_cs_files(self) -> list[Path]:
         """Walk the project tree, skipping filtered and Unity-hidden (~) directories."""

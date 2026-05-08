@@ -26,11 +26,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a31;
+  background: #313139;
   border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a43;
+  background: #434350;
 }
 
 /* React Flow theme overrides */
@@ -38,12 +38,12 @@ body {
   background: transparent;
 }
 .react-flow__controls button {
-  background: #1c1c21;
-  color: #d4d1c4;
-  border-color: #34343c;
+  background: #24242e;
+  color: #d8d5cc;
+  border-color: #434350;
 }
 .react-flow__controls button:hover {
-  background: #242429;
+  background: #313139;
 }
 .react-flow__attribution {
   background: transparent !important;

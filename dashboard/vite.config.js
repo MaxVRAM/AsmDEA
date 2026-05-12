@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      reportsDir && {
+      {
         name: 'asmdea-reports',
         configureServer(server) {
           server.middlewares.use('/reports', (req, res, next) => {

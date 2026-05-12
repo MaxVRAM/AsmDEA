@@ -19,6 +19,7 @@ Usage:
 
 import argparse
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -90,6 +91,7 @@ Environment Variables (from .env file):
   ALLOW_CHILD_NAMESPACES - Allow child namespaces (true/false, default: true)
   SHOW_UNMATCHED_PATHS   - Include unmatchedPaths in namespace_report.json (true/false, default: true)
   FILEPATH_TYPE          - File path format in reports: absolute|relative (default: relative)
+    OPEN_DASHBOARD         - Open dashboard after analyze completes (true/false, default: true)
   DETAILED               - Show detailed dependency trees (true/false, default: false)
   DEPTH                  - Max depth for dependency tree visualization (default: 2)
   FILTER_ROOT            - Comma-separated top-level namespace segments to exclude (e.g. Unity,UnityEngine)
@@ -140,8 +142,7 @@ Environment Variables (from .env file):
         "--filepath-type",
         choices=["absolute", "relative"],
         default=get_env_or_default("FILEPATH_TYPE", "relative"),
-        help="File path format in reports: 'absolute' or 'relative' to the "
-             "project path (default: relative)",
+        help="File path format in reports: 'absolute' or 'relative' to the project path (default: relative)",
     )
     project_args.add_argument(
         "--filter-root",
@@ -207,6 +208,18 @@ Environment Variables (from .env file):
         type=int,
         default=int(get_env_or_default("DEPTH", "2")),
         help="Maximum depth for dependency tree visualization (default: 2)",
+    )
+    analyze.add_argument(
+        "--open-dashboard",
+        action="store_true",
+        default=get_env_bool("OPEN_DASHBOARD", True),
+        help="Open dashboard frontend when analysis completes (default: True)",
+    )
+    analyze.add_argument(
+        "--no-open-dashboard",
+        dest="open_dashboard",
+        action="store_false",
+        help="Do not open dashboard frontend when analysis completes",
     )
 
     # build-dict command
@@ -357,6 +370,38 @@ def validate_project_path(project_path: Path, logger: Any) -> bool:
         console.print(f"[error]Project path is not a directory:[/] [path]{project_path}[/]")
         return False
     return True
+
+
+def open_dashboard_frontend(reports_dir: Path) -> None:
+    """Start the dashboard dev server in the foreground."""
+    console = get_console()
+    dashboard_dir = Path(__file__).parent / "dashboard"
+    dashboard_url = "http://localhost:5173"
+
+    if not dashboard_dir.exists():
+        console.print(f"[warning]Dashboard directory not found:[/] [path]{dashboard_dir}[/]")
+        return
+
+    env = os.environ.copy()
+    env["ASMDEA_REPORTS_DIR"] = str(reports_dir.resolve())
+    console.print(f"[info]Starting dashboard server at [path]{dashboard_url}[/]. Press Ctrl+C to stop.[/]")
+
+    try:
+        subprocess.run(
+            ["pnpm.cmd", "dev"],
+            cwd=dashboard_dir,
+            env=env,
+            check=False,
+        )
+    except FileNotFoundError:
+        console.print("[warning]Could not start dashboard server: 'pnpm.cmd' was not found on PATH.[/]")
+        return
+    except KeyboardInterrupt:
+        print_section_complete("Dashboard server stopped")
+        return
+    except Exception as exc:
+        console.print(f"[warning]Could not start dashboard server:[/] {exc}")
+        return
 
 
 def cmd_build_dict(args: argparse.Namespace, logger: Any) -> int:
@@ -641,6 +686,9 @@ def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
 
     # Print completion summary
     print_analysis_complete(str(args.output_dir), success=(exit_code == 0))
+
+    if args.open_dashboard:
+        open_dashboard_frontend(args.output_dir)
 
     return exit_code
 

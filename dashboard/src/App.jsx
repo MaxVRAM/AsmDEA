@@ -7,6 +7,7 @@ import { DependenciesTab } from './components/tabs/DependenciesTab.jsx'
 import { NamespacesTab } from './components/tabs/NamespacesTab.jsx'
 import { FilesTab } from './components/tabs/FilesTab.jsx'
 import { CyclesTab } from './components/tabs/CyclesTab.jsx'
+import { PrefabTab } from './components/tabs/PrefabTab.jsx'
 import { formatTime } from './utils/format.js'
 
 const TABS = [
@@ -14,7 +15,8 @@ const TABS = [
   { id: 'dependencies', label: 'Dependencies' },
   { id: 'cycles', label: 'Cycles' },
   { id: 'namespaces', label: 'Namespaces' },
-  { id: 'files', label: 'Files' }
+  { id: 'files', label: 'Files' },
+  { id: 'prefab', label: 'Prefab Check' }
 ]
 
 export default function App() {
@@ -75,6 +77,7 @@ export default function App() {
         {active === 'cycles' && <CyclesTab reports={reports} />}
         {active === 'namespaces' && <NamespacesTab reports={reports} />}
         {active === 'files' && <FilesTab reports={reports} />}
+        {active === 'prefab' && <PrefabTab reports={reports} />}
       </main>
 
       <footer className="border-t border-ink-700 py-4 px-8 ijm-code text-[11px] text-ink-500 flex justify-between">

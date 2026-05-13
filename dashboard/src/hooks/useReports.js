@@ -4,7 +4,8 @@ const REPORT_FILES = {
   asmdef: '/reports/asmdef_dictionary.json',
   cycles: '/reports/cycle_report.json',
   files: '/reports/file_report.json',
-  namespaces: '/reports/namespace_report.json'
+  namespaces: '/reports/namespace_report.json',
+  scripts: '/reports/script_report.json'
 }
 
 async function fetchReport(path) {
@@ -25,7 +26,8 @@ export function useReports() {
     asmdef: { status: 'loading', path: REPORT_FILES.asmdef },
     cycles: { status: 'loading', path: REPORT_FILES.cycles },
     files: { status: 'loading', path: REPORT_FILES.files },
-    namespaces: { status: 'loading', path: REPORT_FILES.namespaces }
+    namespaces: { status: 'loading', path: REPORT_FILES.namespaces },
+    scripts: { status: 'loading', path: REPORT_FILES.scripts }
   })
   const [loadedAt, setLoadedAt] = useState(null)
 

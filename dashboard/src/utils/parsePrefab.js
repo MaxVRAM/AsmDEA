@@ -67,6 +67,7 @@ export function resolvePrefabDeps({ guids, scriptReport, asmdefDict }) {
     const bucket = directAssemblies.get(key) ?? {
       assemblyGuid: s.assembly,
       name: assemblyName(s.assembly, asmdefDict),
+      relativePath: asmdefDict?.[s.assembly]?.relativePath ?? null,
       orphaned: s.assembly == null,
       scriptCount: 0,
       occurrenceCount: 0

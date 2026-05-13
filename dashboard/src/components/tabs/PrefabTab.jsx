@@ -195,9 +195,9 @@ function ScriptRow({ script }) {
     <div className="flex items-center gap-3 px-5 py-3 border-b border-ink-800 last:border-b-0">
       <div className="flex-1 min-w-0">
         <div className="ijm-code text-sm text-ink-100">{script.name}</div>
-        {script.namespace && (
-          <div className="ijm-code text-[11px] text-ink-400 truncate">{script.namespace}</div>
-        )}
+        <div className={`ijm-code text-[11px] truncate ${script.namespace ? 'text-ink-400' : 'text-danger'}`}>
+          {script.namespace || 'No namespace'}
+        </div>
       </div>
       {script.count > 1 && (
         <div className="ijm-code text-[11px] text-ink-400">×{script.count}</div>
@@ -233,7 +233,12 @@ function UnresolvedRow({ script }) {
 function AssemblyRow({ assembly }) {
   return (
     <div className="flex items-center gap-3 px-5 py-3 border-b border-ink-800 last:border-b-0">
-      <div className="flex-1 min-w-0 ijm-code text-sm text-ink-100 truncate">{assembly.name}</div>
+      <div className="flex-1 min-w-0">
+        <div className="ijm-code text-sm text-ink-100 truncate">{assembly.name}</div>
+        <div className="ijm-code text-[11px] text-ink-400 truncate">
+          {assembly.relativePath ?? '—'}
+        </div>
+      </div>
       <div className="ijm-code text-[11px] text-ink-400">
         {assembly.scriptCount} script{assembly.scriptCount === 1 ? '' : 's'}
         {assembly.occurrenceCount !== assembly.scriptCount && (

@@ -31,7 +31,8 @@ AsmDEA/
 ├── analysers/                  # Analyser classes
 │   ├── cycle_analyser.py      # Circular dependency detection
 │   ├── file_analyser.py       # C# file to assembly mapping
-│   └── namespace_analyser.py  # Namespace compliance checking
+│   ├── namespace_analyser.py  # Namespace compliance checking
+│   └── script_analyser.py     # Per-script metadata (GUID-keyed)
 ├── common/                     # Shared utilities
 │   ├── asmdef_dict.py         # Dictionary manipulation helpers
 │   ├── console.py             # Rich console configuration
@@ -50,7 +51,8 @@ AsmDEA/
 │   ├── base.py                # Abstract reporter base class
 │   ├── cycle_reporter.py      # Cycle analysis output
 │   ├── file_reporter.py       # File mapping output
-│   └── namespace_reporter.py  # Namespace validation output
+│   ├── namespace_reporter.py  # Namespace validation output
+│   └── script_reporter.py     # Per-script metadata output
 ├── tests/                      # Test suite (50 tests, 77% coverage)
 └── reports/                    # Generated analysis reports (JSON)
 ```
@@ -101,6 +103,19 @@ AsmDEA/
 **Input:** Assembly dictionary with file mappings  
 **Output:** `NamespaceAnalysis` dataclass with results and violations
 
+#### `script_analyser.py`
+
+**Purpose:** Build a per-script (GUID-keyed) metadata view of every C# file in the project  
+**Key Class:** `ScriptAnalyser`  
+**Constructor:** `ScriptAnalyser(asmdef_dict: dict, root_path: Path, filter_paths: list[str] | None)`  
+**Methods:**
+- `analyse() -> dict` - Scan project; return `{scripts, stats, scripts_without_meta}`
+- `_extract_imports()` - Parse `using` directives (plain, `global`, `static`, namespace aliases) (static)
+- `_read_script_guid()` - Read GUID from sidecar `.cs.meta` (static)
+
+**Input:** Unity project root + asmdef dictionary  
+**Output:** Per-script metadata: name, path, namespace, imports, owning assembly
+
 ---
 
 ### Reporting Layer (`reporting/`)
@@ -140,6 +155,16 @@ AsmDEA/
 - Mismatched namespace listings
 - Files without namespace declarations
 - Child namespace handling (configurable)
+
+#### `script_reporter.py`
+
+**Purpose:** Emit `script_report.json` and a console summary of per-script metadata  
+**Key Class:** `ScriptReporter`  
+**Features:**
+- GUID-sorted JSON entries for byte-stable diffs
+- Console summary with namespace/meta/orphan counts
+- Top-N most-imported namespaces breakdown
+- Honours `--filepath-type` for the `relativePath` field
 
 ---
 

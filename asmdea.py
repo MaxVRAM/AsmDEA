@@ -32,7 +32,7 @@ try:
 except ImportError:
     pass
 
-from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser
+from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser, ScriptAnalyser
 from common import (
     FilepathType,
     apply_filters,
@@ -50,7 +50,13 @@ from common import (
 from common.backup import BackupManager
 from common.dictionary import build_asmdef_dictionary
 from enforcement import DependencySorter, SortingStrategy
-from reporting import CycleReporter, EnforcementReporter, FileAnalysisReporter, NamespaceReporter
+from reporting import (
+    CycleReporter,
+    EnforcementReporter,
+    FileAnalysisReporter,
+    NamespaceReporter,
+    ScriptReporter,
+)
 
 
 def get_env_or_default(key: str, default: str) -> str:
@@ -253,6 +259,13 @@ Environment Variables (from .env file):
         "map-files",
         parents=[project_args],
         help="Map C# files to assemblies",
+    )
+
+    # map-scripts command
+    subparsers.add_parser(
+        "map-scripts",
+        parents=[project_args],
+        help="Build per-script metadata (script_report.json)",
     )
 
     # validate-namespaces command
@@ -504,6 +517,48 @@ def cmd_map_files(args: argparse.Namespace, logger: Any) -> int:
     return 0
 
 
+def cmd_map_scripts(args: argparse.Namespace, logger: Any) -> int:
+    """Build per-script metadata report (script_report.json).
+
+    Unlike :func:`cmd_map_files`, this does not mutate the asmdef dictionary.
+    """
+    if not validate_project_path(args.project_path, logger):
+        return 2
+
+    console = get_console()
+    if not args.dict_file.exists():
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
+
+    analyser = ScriptAnalyser(
+        asmdef_dict,
+        args.project_path,
+        filter_paths=getattr(args, "filter_path", None) or [],
+    )
+    result = analyser.analyse()
+
+    reporter = ScriptReporter(
+        verbose=args.verbose,
+        filepath_type=FilepathType.parse(getattr(args, "filepath_type", None)),
+        root_path=args.project_path,
+    )
+    reporter.print_console_report(result)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    reporter.save_json_report(result, args.output_dir / "script_report.json")
+
+    return 0
+
+
 def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
     """Validate namespace compliance."""
     if not validate_project_path(args.project_path, logger):
@@ -665,22 +720,26 @@ def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     print_analysis_header()
 
     # Step 1: Build dictionary
-    print_section_header("Building Assembly Dictionary", step=1, total_steps=4)
+    print_section_header("Building Assembly Dictionary", step=1, total_steps=5)
     result = cmd_build_dict(args, logger)
     if result != 0:
         return result
 
     # Step 2: Map files
-    print_section_header("Mapping C# Files to Assemblies", step=2, total_steps=4)
+    print_section_header("Mapping C# Files to Assemblies", step=2, total_steps=5)
     cmd_map_files(args, logger)
 
-    # Step 3: Validate namespaces
-    print_section_header("Validating Namespace Compliance", step=3, total_steps=4)
+    # Step 3: Map scripts (per-script metadata view)
+    print_section_header("Mapping Scripts", step=3, total_steps=5)
+    cmd_map_scripts(args, logger)
+
+    # Step 4: Validate namespaces
+    print_section_header("Validating Namespace Compliance", step=4, total_steps=5)
     if cmd_validate_namespaces(args, logger) != 0:
         exit_code = 1
 
-    # Step 4: Detect cycles
-    print_section_header("Detecting Circular Dependencies", step=4, total_steps=4)
+    # Step 5: Detect cycles
+    print_section_header("Detecting Circular Dependencies", step=5, total_steps=5)
     if cmd_detect_cycles(args, logger) != 0:
         exit_code = 1
 
@@ -714,6 +773,7 @@ def main() -> int:
         "build-dict": cmd_build_dict,
         "detect-cycles": cmd_detect_cycles,
         "map-files": cmd_map_files,
+        "map-scripts": cmd_map_scripts,
         "validate-namespaces": cmd_validate_namespaces,
         "sort-deps": cmd_sort_deps,
         "restore-backup": cmd_restore_backup,

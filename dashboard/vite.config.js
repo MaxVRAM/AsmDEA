@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
             let stderr = ''
             const child = spawn(python, ['asmdea.py', 'all'], { cwd: parentDir })
             child.stderr.on('data', d => { stderr += d.toString() })
+            child.stdout.on('data', d => { console.log(d.toString()) })
             child.on('close', code => {
               res.setHeader('Content-Type', 'application/json')
               if (code === 0) {

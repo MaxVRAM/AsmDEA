@@ -719,6 +719,10 @@ def main() -> int:
         "restore-backup": cmd_restore_backup,
     }
 
+    # Console output the command being executed
+    console = get_console()
+    console.print(f"[info]Executing command:[/] [command]{args.command}[/]")
+
     try:
         return commands[args.command](args, logger)
     except KeyboardInterrupt:

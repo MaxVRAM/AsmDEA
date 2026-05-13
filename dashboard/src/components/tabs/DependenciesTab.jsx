@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ReactFlow, Background, Controls, MiniMap, Position } from '@xyflow/react'
+import { ReactFlow, Background, Controls, Position } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from 'dagre'
 import { buildGuidLookup } from '../../utils/format.js'
@@ -33,6 +33,7 @@ export function DependenciesTab({ reports }) {
   const cycles = reports.cycles.data
   const [hideUnityBuiltins, setHideUnityBuiltins] = useState(true)
   const [onlyCycles, setOnlyCycles] = useState(false)
+  const [hideOrphanNodes, setHideOrphanNodes] = useState(false)
   const [selected, setSelected] = useState(null)
 
   const graph = useMemo(() => {
@@ -83,7 +84,9 @@ export function DependenciesTab({ reports }) {
           source: v.name,
           target: refName,
           animated: inCycle,
+          interactionWidth: 0,
           style: {
+            pointerEvents: 'none',
             stroke: inCycle ? '#ff5757' : '#34343c',
             strokeWidth: inCycle ? 2 : 1
           }
@@ -91,8 +94,15 @@ export function DependenciesTab({ reports }) {
       }
     }
 
-    return { nodes: layoutGraph(nodes, edges), edges }
-  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles])
+    let visibleNodes = nodes
+    if (hideOrphanNodes) {
+      const connected = new Set()
+      edges.forEach(e => { connected.add(e.source); connected.add(e.target) })
+      visibleNodes = nodes.filter(n => connected.has(n.id))
+    }
+
+    return { nodes: layoutGraph(visibleNodes, edges), edges }
+  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes])
 
   const selectedId = selected?.id ?? null
 
@@ -126,6 +136,7 @@ export function DependenciesTab({ reports }) {
       <div className="flex items-center gap-6">
         <Filter label="Hide Unity built-ins" checked={hideUnityBuiltins} onChange={setHideUnityBuiltins} />
         <Filter label="Only cycle nodes" checked={onlyCycles} onChange={setOnlyCycles} />
+        <Filter label="Hide orphan nodes" checked={hideOrphanNodes} onChange={setHideOrphanNodes} />
         <div className="ml-auto ijm-code text-xs text-ink-400">
           {graph.nodes.length} nodes · {graph.edges.length} edges
         </div>
@@ -146,11 +157,6 @@ export function DependenciesTab({ reports }) {
           >
             <Background color="#242429" gap={24} />
             <Controls showInteractive={false} />
-            <MiniMap
-              style={{ background: '#131316' }}
-              nodeColor={n => (n.data?.inCycle ? '#ff5757' : '#34343c')}
-              maskColor="rgba(10,10,11,0.8)"
-            />
           </ReactFlow>
         </div>
 

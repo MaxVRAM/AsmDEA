@@ -81,7 +81,7 @@ class ScriptAnalyser:
         imports: set[str] = set()
 
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8-sig") as f:
                 content = f.read()
         except Exception:
             return []

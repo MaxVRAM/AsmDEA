@@ -74,6 +74,7 @@ class ScriptReporter(BaseReporter):
         without_meta = stats.get("scripts_without_meta", 0)
         orphaned = stats.get("orphaned_scripts", 0)
         unique = stats.get("unique_namespaces_imported", 0)
+        unique_external = stats.get("unique_external_namespaces", 0)
 
         panel = Panel(
             f"[count]{total}[/] scripts analysed",
@@ -100,6 +101,7 @@ class ScriptReporter(BaseReporter):
             f"[warning]{orphaned}[/]" if orphaned else "0",
         )
         table.add_row("Unique Namespaces Imported", str(unique))
+        table.add_row("Unique External Namespaces", str(unique_external))
 
         console.print(table)
         console.print()
@@ -136,6 +138,7 @@ class ScriptReporter(BaseReporter):
                 "orphanedScripts": stats.get("orphaned_scripts", 0),
                 "totalImports": stats.get("total_imports", 0),
                 "uniqueNamespacesImported": stats.get("unique_namespaces_imported", 0),
+                "uniqueExternalNamespaces": stats.get("unique_external_namespaces", 0),
             },
             "scripts": {
                 guid: {
@@ -146,6 +149,7 @@ class ScriptReporter(BaseReporter):
                     "namespace": entry["namespace"],
                     "importCount": len(entry["imports"]),
                     "imports": list(entry["imports"]),
+                    "externalImports": list(entry.get("external_imports", [])),
                     "assembly": entry["assembly"],
                 }
                 for guid, entry in sorted(scripts.items())

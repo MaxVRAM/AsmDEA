@@ -69,3 +69,52 @@ def test_json_report_assembly_resolution(tmp_path: Path):
     entry = payload["scripts"]["GUID:scriptguid"]
     assert entry["assembly"] == "GUID:asm1"
     assert entry["relativePath"] == "Assets/Foo/Bar.cs"
+
+
+def test_json_report_external_imports_field(tmp_path: Path):
+    # Script imports one internal and two external namespaces.
+    cs = tmp_path / "Script.cs"
+    content = (
+        "using MyProject.Core;\n"  # internal
+        "using UnityEngine;\n"     # external
+        "using System;\n"          # external
+    )
+    _make(cs, content, "sg1")
+    asmdef_dict = {
+        "GUID:asm1": {
+            "name": "Core",
+            "rootNamespace": "MyProject.Core",
+            "references": [],
+            "relativePath": "Assets/Core",
+        }
+    }
+
+    result = ScriptAnalyser(asmdef_dict, tmp_path).analyse()
+    payload = ScriptReporter(root_path=tmp_path).generate_json_report(result)
+
+    entry = payload["scripts"]["GUID:sg1"]
+    # imports is still the full list
+    assert entry["imports"] == ["MyProject.Core", "System", "UnityEngine"]
+    # externalImports excludes the internal one
+    assert entry["externalImports"] == ["System", "UnityEngine"]
+
+
+def test_json_report_summary_unique_external_namespaces(tmp_path: Path):
+    # Two scripts; union of external namespaces across both should appear in summary.
+    _make(tmp_path / "A.cs", "using UnityEngine;\nusing System;\n", "g1")
+    _make(tmp_path / "B.cs", "using UnityEngine;\nusing System.Linq;\n", "g2")
+    asmdef_dict = {
+        "GUID:asm1": {
+            "name": "Internal",
+            "rootNamespace": "MyProject",
+            "references": [],
+            "relativePath": "Assets/Internal",
+        }
+    }
+
+    result = ScriptAnalyser(asmdef_dict, tmp_path).analyse()
+    payload = ScriptReporter(root_path=tmp_path).generate_json_report(result)
+
+    assert "uniqueExternalNamespaces" in payload["summary"]
+    # UnityEngine + System + System.Linq = 3 unique external namespaces
+    assert payload["summary"]["uniqueExternalNamespaces"] == 3

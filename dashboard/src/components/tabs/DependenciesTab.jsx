@@ -34,7 +34,17 @@ export function DependenciesTab({ reports }) {
   const [hideUnityBuiltins, setHideUnityBuiltins] = useState(true)
   const [onlyCycles, setOnlyCycles] = useState(false)
   const [hideOrphanNodes, setHideOrphanNodes] = useState(false)
+  const [hideExternal, setHideExternal] = useState(true)
   const [selected, setSelected] = useState(null)
+  // Per-root expanded state; unset key defaults to collapsed (false)
+  const [expandedRoots, setExpandedRoots] = useState(() => ({}))
+
+  const isExpanded = (root) => expandedRoots[root] === true
+
+  const toggleRoot = (root) =>
+    setExpandedRoots(prev => ({ ...prev, [root]: !isExpanded(root) }))
+
+  const scripts = reports.scripts?.data?.scripts
 
   const graph = useMemo(() => {
     if (!asmdef) return null
@@ -101,8 +111,188 @@ export function DependenciesTab({ reports }) {
       visibleNodes = nodes.filter(n => connected.has(n.id))
     }
 
-    return { nodes: layoutGraph(visibleNodes, edges), edges }
-  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes])
+    const positionedAssemblyNodes = layoutGraph(visibleNodes, edges)
+
+    if (!hideExternal && scripts) {
+      const guidToExternals = new Map()
+      for (const entry of Object.values(scripts)) {
+        const externalImports = entry.externalImports
+        if (!externalImports?.length || !entry.assembly) continue
+        const guid = entry.assembly
+        if (!guidToExternals.has(guid)) guidToExternals.set(guid, new Set())
+        for (const ns of externalImports) {
+          guidToExternals.get(guid).add(ns)
+        }
+      }
+
+      const nsToAssemblyNames = new Map()
+      for (const [guid, nsSet] of guidToExternals) {
+        const assemblyName = guidToName[guid]
+        if (!assemblyName || !includedNames.has(assemblyName)) continue
+        for (const ns of nsSet) {
+          if (!nsToAssemblyNames.has(ns)) nsToAssemblyNames.set(ns, new Set())
+          nsToAssemblyNames.get(ns).add(assemblyName)
+        }
+      }
+
+      if (nsToAssemblyNames.size > 0) {
+        const maxX = Math.max(...positionedAssemblyNodes.map(n => n.position.x)) + NODE_W + 120
+
+        // Group namespaces by their root segment (first dot-segment)
+        const rootGroups = new Map() // root -> sorted array of full namespaces
+        for (const ns of nsToAssemblyNames.keys()) {
+          const root = ns.split('.')[0]
+          if (!rootGroups.has(root)) rootGroups.set(root, [])
+          rootGroups.get(root).push(ns)
+        }
+        // Sort roots alphabetically; sort children within each group alphabetically
+        const sortedRoots = [...rootGroups.keys()].sort()
+        for (const root of sortedRoots) {
+          rootGroups.get(root).sort()
+        }
+
+        // A root group is foldable only if it has children beyond the root itself.
+        // When the only member IS the root (e.g. `Cinemachine` with no `Cinemachine.X`),
+        // render a single dashed leaf instead of a parent + child pair.
+        const isFoldable = (root) => {
+          const members = rootGroups.get(root)
+          return members.length > 1 || members[0] !== root
+        }
+
+        // Count total visible rows for vertical centering
+        const gap = 16
+        let visibleExternalRowCount = 0
+        for (const root of sortedRoots) {
+          if (!isFoldable(root)) {
+            visibleExternalRowCount += 1 // single leaf
+            continue
+          }
+          visibleExternalRowCount += 1 // parent row
+          if (isExpanded(root)) visibleExternalRowCount += rootGroups.get(root).length
+        }
+
+        const minAssemblyY = Math.min(...positionedAssemblyNodes.map(n => n.position.y))
+        const maxAssemblyY = Math.max(...positionedAssemblyNodes.map(n => n.position.y))
+        const projectCenterY = (minAssemblyY + maxAssemblyY + NODE_H) / 2
+        const totalExternalHeight = visibleExternalRowCount * NODE_H + (visibleExternalRowCount - 1) * gap
+        const topY = projectCenterY - totalExternalHeight / 2
+
+        const externalNodes = []
+        let rowIndex = 0
+
+        const childNodeStyle = {
+          background: '#15151a',
+          border: '1px dashed #5a5a66',
+          color: '#8a8a96',
+          padding: '10px 12px',
+          borderRadius: 4,
+          fontSize: 11,
+          fontFamily: 'JetBrains Mono, monospace',
+          width: NODE_W
+        }
+
+        for (const root of sortedRoots) {
+          const children = rootGroups.get(root)
+
+          if (!isFoldable(root)) {
+            const ns = children[0]
+            externalNodes.push({
+              id: `ext::${ns}`,
+              data: {
+                label: ns,
+                isExternal: true,
+                raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
+              },
+              style: childNodeStyle,
+              position: { x: maxX, y: topY + rowIndex * (NODE_H + gap) },
+              sourcePosition: Position.Right,
+              targetPosition: Position.Left
+            })
+            rowIndex++
+            continue
+          }
+
+          const expanded = isExpanded(root)
+
+          // Parent node
+          externalNodes.push({
+            id: `ext-parent::${root}`,
+            data: {
+              label: `${expanded ? '▼' : '▶'} ${root}`,
+              isExternalParent: true,
+              root
+            },
+            style: {
+              background: expanded ? '#1a1a22' : '#1f1f28',
+              border: '1px solid #5a5a66',
+              color: '#b8b8c4',
+              padding: '10px 12px',
+              borderRadius: 4,
+              fontSize: 11,
+              fontFamily: 'JetBrains Mono, monospace',
+              width: NODE_W,
+              cursor: 'pointer'
+            },
+            position: { x: maxX, y: topY + rowIndex * (NODE_H + gap) },
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left
+          })
+          rowIndex++
+
+          if (expanded) {
+            for (const ns of children) {
+              externalNodes.push({
+                id: `ext::${ns}`,
+                data: {
+                  label: ns,
+                  isExternal: true,
+                  raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
+                },
+                style: childNodeStyle,
+                position: { x: maxX + 24, y: topY + rowIndex * (NODE_H + gap) },
+                sourcePosition: Position.Right,
+                targetPosition: Position.Left
+              })
+              rowIndex++
+            }
+          }
+        }
+
+        // Build external edges; deduplicate collapsed-group edges with a Set
+        const seenEdges = new Set()
+        const externalEdges = []
+        for (const [ns, assemblyNames] of nsToAssemblyNames) {
+          const root = ns.split('.')[0]
+          let target
+          if (!isFoldable(root)) {
+            target = `ext::${ns}`
+          } else {
+            target = isExpanded(root) ? `ext::${ns}` : `ext-parent::${root}`
+          }
+          for (const assemblyName of assemblyNames) {
+            const edgeKey = `${assemblyName}->${target}`
+            if (seenEdges.has(edgeKey)) continue
+            seenEdges.add(edgeKey)
+            externalEdges.push({
+              id: edgeKey,
+              source: assemblyName,
+              target,
+              animated: false,
+              interactionWidth: 0,
+              style: { pointerEvents: 'none', stroke: '#3a3a44', strokeWidth: 1, strokeDasharray: '4 4' }
+            })
+          }
+        }
+
+        return {
+          nodes: [...positionedAssemblyNodes, ...externalNodes],
+          edges: [...edges, ...externalEdges]
+        }
+      }
+    }
+
+    return { nodes: positionedAssemblyNodes, edges }
+  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots])
 
   const selectedId = selected?.id ?? null
 
@@ -137,6 +327,7 @@ export function DependenciesTab({ reports }) {
         <Filter label="Hide Unity built-ins" checked={hideUnityBuiltins} onChange={setHideUnityBuiltins} />
         <Filter label="Only cycle nodes" checked={onlyCycles} onChange={setOnlyCycles} />
         <Filter label="Hide orphan nodes" checked={hideOrphanNodes} onChange={setHideOrphanNodes} />
+        <Filter label="Hide external dependencies" checked={hideExternal} onChange={setHideExternal} />
         <div className="ml-auto ijm-code text-xs text-ink-400">
           {graph.nodes.length} nodes · {graph.edges.length} edges
         </div>
@@ -151,7 +342,13 @@ export function DependenciesTab({ reports }) {
             minZoom={0.1}
             maxZoom={2}
             colorMode="dark"
-            onNodeClick={(_, node) => setSelected(node)}
+            onNodeClick={(_, node) => {
+              if (node.data?.isExternalParent) {
+                toggleRoot(node.data.root)
+              } else {
+                setSelected(node)
+              }
+            }}
             onPaneClick={() => setSelected(null)}
             proOptions={{ hideAttribution: false }}
           >
@@ -199,6 +396,9 @@ function Legend() {
       <div className="flex items-center gap-2">
         <span className="inline-block w-6 h-0.5 bg-danger" /> cycle edge
       </div>
+      <div className="flex items-center gap-2">
+        <span className="inline-block w-4 h-3 border border-dashed" style={{ borderColor: '#5a5a66', background: '#15151a' }} /> external dependency
+      </div>
     </div>
   )
 }
@@ -215,6 +415,38 @@ function EmptyInspector() {
 }
 
 function NodeInspector({ node, onClose }) {
+  if (node.data?.isExternal) {
+    const raw = node.data.raw
+    return (
+      <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <div className="ijm-eyebrow text-ink-400 mb-1">External Dependency</div>
+            <div className="ijm-code text-sm break-all">{raw.namespace}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-ink-400 hover:text-ink-100 text-xs"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <dl className="space-y-3 text-xs">
+          <Field label="Namespace" value={raw.namespace} mono />
+          <div>
+            <dt className="ijm-eyebrow text-ink-400 mb-1">Imported by</dt>
+            <dd className="space-y-1">
+              {raw.importingAssemblies.map(name => (
+                <div key={name} className="font-mono text-ink-200 break-all">{name}</div>
+              ))}
+            </dd>
+          </div>
+        </dl>
+      </aside>
+    )
+  }
+
   const raw = node.data?.raw ?? {}
   return (
     <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">

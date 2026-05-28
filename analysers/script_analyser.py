@@ -65,6 +65,21 @@ class ScriptAnalyser:
         # owning-assembly resolution.
         self._file_analyser = FileAnalyser(asmdef_dict, root_path, filter_paths=filter_paths)
 
+        # Collect non-empty rootNamespace values from all assemblies (skip _metadata).
+        # Sort descending by length so that more-specific prefixes are tested first,
+        # which makes the dotted-boundary check short-circuit on the best candidate.
+        self._internal_namespace_roots: list[str] = sorted(
+            (
+                entry["rootNamespace"]
+                for key, entry in asmdef_dict.items()
+                if key != "_metadata"
+                and isinstance(entry, dict)
+                and entry.get("rootNamespace")
+            ),
+            key=len,
+            reverse=True,
+        )
+
     @staticmethod
     def _extract_imports(file_path: Path) -> list[str]:
         """Parse ``using`` directives from a C# source file.
@@ -105,6 +120,18 @@ class ScriptAnalyser:
             return None
         return extract_guid_from_meta(meta_path)
 
+    def _is_internal_namespace(self, ns: str) -> bool:
+        """Return True if ``ns`` belongs to a project-defined assembly namespace.
+
+        A namespace is internal when a root ``R`` satisfies ``ns == R`` or
+        ``ns.startswith(R + ".")``. The trailing-dot check is intentional: it
+        prevents ``OPT.CUAS.Audio`` from matching ``OPT.CUAS.AudioPlus``.
+        """
+        for root in self._internal_namespace_roots:
+            if ns == root or ns.startswith(root + "."):
+                return True
+        return False
+
     def analyse(self) -> dict[str, Any]:
         """Produce per-script metadata for every ``.cs`` file in the project.
 
@@ -124,6 +151,7 @@ class ScriptAnalyser:
         scripts_without_meta: list[Path] = []
         total_imports = 0
         unique_namespaces: set[str] = set()
+        unique_external_namespaces: set[str] = set()
         no_namespace = 0
         orphaned = 0
 
@@ -142,6 +170,9 @@ class ScriptAnalyser:
             total_imports += len(imports)
             unique_namespaces.update(imports)
 
+            external_imports = [n for n in imports if not self._is_internal_namespace(n)]
+            unique_external_namespaces.update(external_imports)
+
             assembly = self._file_analyser.find_owning_assembly(cs_file)
             if assembly is None:
                 orphaned += 1
@@ -151,6 +182,7 @@ class ScriptAnalyser:
                 "path": cs_file,
                 "namespace": namespace,
                 "imports": imports,
+                "external_imports": external_imports,
                 "assembly": assembly,
             }
 
@@ -162,6 +194,7 @@ class ScriptAnalyser:
             "orphaned_scripts": orphaned,
             "total_imports": total_imports,
             "unique_namespaces_imported": len(unique_namespaces),
+            "unique_external_namespaces": len(unique_external_namespaces),
         }
 
         return {

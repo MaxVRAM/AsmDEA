@@ -71,7 +71,7 @@ export default function App() {
         <TabNav tabs={TABS} active={active} onChange={setActive} />
       </header>
 
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-8 py-10">
+      <main className={`flex-1 w-full mx-auto px-8 py-10 ${active === 'dependencies' ? '' : 'max-w-[1600px]'}`}>
         {active === 'overview' && <OverviewTab reports={reports} />}
         {active === 'dependencies' && <DependenciesTab reports={reports} />}
         {active === 'cycles' && <CyclesTab reports={reports} />}

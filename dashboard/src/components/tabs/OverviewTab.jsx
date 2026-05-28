@@ -13,7 +13,9 @@ export function OverviewTab({ reports }) {
     : null
   const totalFiles = files?.summary?.totalCsFiles
   const orphaned = files?.summary?.orphanedFiles ?? 0
-  const compliance = namespaces?.summary?.overallMatchPercentage
+  const compliance =
+    namespaces?.summary?.overallCompliancePercentage ??
+    namespaces?.summary?.overallMatchPercentage
   const cycleCount = cycles?.totalCycles ?? 0
 
   const health = getHealth({ cycleCount, compliance, orphaned })

@@ -186,6 +186,7 @@ class NamespaceAnalyser:
             # Update totals
             report.total_files += stats.total_files
             report.total_matched += stats.matched_files
+            report.total_child_namespaces += stats.child_namespace_files
             report.total_mismatched += stats.unmatched_files
             report.total_no_namespace += stats.no_namespace_files
 

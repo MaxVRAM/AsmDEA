@@ -86,11 +86,18 @@ class NamespaceReporter(BaseReporter):
         """
         console = self.console
 
-        # Determine status color based on match rate
-        if report.overall_match_percentage >= 95:
+        headline_percentage = (
+            report.overall_compliance_percentage
+            if self.allow_child_namespaces
+            else report.overall_match_percentage
+        )
+        headline_label = "Overall Compliance" if self.allow_child_namespaces else "Overall Match Rate"
+
+        # Determine status color based on headline percentage
+        if headline_percentage >= 95:
             status_style = "green"
             status_text = "success"
-        elif report.overall_match_percentage >= 70:
+        elif headline_percentage >= 70:
             status_style = "yellow"
             status_text = "warning"
         else:
@@ -99,7 +106,7 @@ class NamespaceReporter(BaseReporter):
 
         # Header panel
         panel = Panel(
-            f"[{status_text}]Overall Match Rate: {report.overall_match_percentage:.1f}%[/]",
+            f"[{status_text}]{headline_label}: {headline_percentage:.1f}%[/]",
             title="Namespace Analysis Report",
             border_style=status_style,
         )
@@ -112,6 +119,7 @@ class NamespaceReporter(BaseReporter):
         summary_table.add_row("Assemblies Analyzed", str(report.total_assemblies))
         summary_table.add_row("Total Files", str(report.total_files))
         summary_table.add_row("Matching Namespaces", str(report.total_matched))
+        summary_table.add_row("Child Namespaces", str(report.total_child_namespaces))
         summary_table.add_row("Mismatched Namespaces", str(report.total_mismatched))
         summary_table.add_row("Files without Namespace", str(report.total_no_namespace))
         console.print(summary_table)
@@ -226,9 +234,11 @@ class NamespaceReporter(BaseReporter):
                 "totalAssemblies": report.total_assemblies,
                 "totalFiles": report.total_files,
                 "matchedFiles": report.total_matched,
+                "childNamespaceFiles": report.total_child_namespaces,
                 "mismatchedFiles": report.total_mismatched,
                 "filesWithoutNamespace": report.total_no_namespace,
                 "overallMatchPercentage": round(report.overall_match_percentage, 2),
+                "overallCompliancePercentage": round(report.overall_compliance_percentage, 2),
                 "allowChildNamespaces": report.allow_child_namespaces,
             },
             "assemblies": {
@@ -247,12 +257,19 @@ class NamespaceReporter(BaseReporter):
 
         console.print(Rule("Namespace Analysis Summary", style="info"))
 
+        headline_percentage = (
+            report.overall_compliance_percentage
+            if self.allow_child_namespaces
+            else report.overall_match_percentage
+        )
+        headline_label = "Compliance Rate" if self.allow_child_namespaces else "Match Rate"
+
         # Summary table
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Metric", style="info")
         table.add_column("Value", style="count", justify="right")
         table.add_row("Files Analyzed", str(report.total_files))
-        table.add_row("Match Rate", f"{report.overall_match_percentage:.1f}%")
+        table.add_row(headline_label, f"{headline_percentage:.1f}%")
         table.add_row(
             "Problem Assemblies",
             f"{len(report.get_problem_assemblies())}/{report.total_assemblies}",

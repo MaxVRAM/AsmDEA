@@ -171,3 +171,28 @@ class TestNamespaceAnalysisReport:
         assert len(problems) == 1
         assert problems[0].assembly_name == "Assembly.Bad"
         assert problems[0].unmatched_files == 5
+
+    def test_overall_compliance_includes_child_namespaces(self):
+        """Overall compliance must count child-namespace files when allowed,
+        matching the per-assembly compliance_percentage formula. Regression
+        guard for the dashboard showing a strict-match number against
+        child-inclusive per-assembly numbers.
+        """
+        report = NamespaceAnalysisReport(
+            total_assemblies=1,
+            total_files=100,
+            total_matched=10,
+            total_child_namespaces=90,
+            total_mismatched=0,
+            total_no_namespace=0,
+            allow_child_namespaces=True,
+        )
+
+        assert report.overall_match_percentage == 10.0
+        assert report.overall_compliance_percentage == 100.0
+
+    def test_overall_compliance_empty_report(self):
+        """Empty reports must not divide by zero."""
+        report = NamespaceAnalysisReport()
+        assert report.overall_match_percentage == 0.0
+        assert report.overall_compliance_percentage == 0.0

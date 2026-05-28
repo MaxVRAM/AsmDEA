@@ -160,7 +160,9 @@ export function DependenciesTab({ reports }) {
           </ReactFlow>
         </div>
 
-        {selected && <NodeInspector node={selected} onClose={() => setSelected(null)} />}
+        {selected
+          ? <NodeInspector node={selected} onClose={() => setSelected(null)} />
+          : <EmptyInspector />}
       </div>
 
       <Legend />
@@ -198,6 +200,17 @@ function Legend() {
         <span className="inline-block w-6 h-0.5 bg-danger" /> cycle edge
       </div>
     </div>
+  )
+}
+
+function EmptyInspector() {
+  return (
+    <aside className="hidden min-[1400px]:flex w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] items-center justify-center">
+      <div className="text-center">
+        <div className="ijm-eyebrow text-ink-400 mb-2">Inspector</div>
+        <div className="text-xs text-ink-500">Select a node to view details</div>
+      </div>
+    </aside>
   )
 }
 

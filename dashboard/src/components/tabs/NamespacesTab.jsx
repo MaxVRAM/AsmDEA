@@ -52,15 +52,23 @@ export function NamespacesTab({ reports }) {
     setExpanded(next)
   }
 
+  const headlinePercentage =
+    ns.summary.overallCompliancePercentage ?? ns.summary.overallMatchPercentage
+
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <StatCard label="Assemblies" value={formatNumber(ns.summary.totalAssemblies)} />
         <StatCard label="Files analysed" value={formatNumber(ns.summary.totalFiles)} />
         <StatCard
-          label="Matched"
+          label="Exact match"
           value={formatNumber(ns.summary.matchedFiles)}
           tone="success"
+        />
+        <StatCard
+          label="Child ns"
+          value={formatNumber(ns.summary.childNamespaceFiles ?? 0)}
+          tone={ns.summary.allowChildNamespaces ? 'success' : 'warning'}
         />
         <StatCard
           label="Mismatched"
@@ -81,14 +89,14 @@ export function NamespacesTab({ reports }) {
               Overall match
             </div>
             <div className="ijm-metric text-[40px] leading-none font-display italic">
-              {formatPercent(ns.summary.overallMatchPercentage)}
+              {formatPercent(headlinePercentage)}
             </div>
           </div>
           <div className="ijm-code text-[11px] text-ink-400">
             child namespaces: {ns.summary.allowChildNamespaces ? 'allowed' : 'strict'}
           </div>
         </div>
-        <ComplianceBar value={ns.summary.overallMatchPercentage} />
+        <ComplianceBar value={headlinePercentage} />
       </section>
 
       <section>

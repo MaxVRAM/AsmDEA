@@ -96,9 +96,10 @@ class NamespaceAnalysisReport:
 
     Attributes:
         assembly_stats: Dictionary mapping assembly GUID to its statistics
-        total_assemblies: Total number of assemblies analyzed
+        total_assemblies: Total number of assemblies analysed
         total_files: Total C# files across all assemblies
         total_matched: Total files with matching namespaces
+        total_child_namespaces: Total files with valid child namespaces
         total_mismatched: Total files with wrong namespaces
         total_no_namespace: Total files without namespace
         allow_child_namespaces: Whether child namespaces were allowed
@@ -108,16 +109,24 @@ class NamespaceAnalysisReport:
     total_assemblies: int = 0
     total_files: int = 0
     total_matched: int = 0
+    total_child_namespaces: int = 0
     total_mismatched: int = 0
     total_no_namespace: int = 0
     allow_child_namespaces: bool = True
 
     @property
     def overall_match_percentage(self) -> float:
-        """Calculate overall match percentage across all assemblies."""
+        """Calculate strict-match percentage across all files (exact namespace matches only)."""
         if self.total_files == 0:
             return 0.0
         return (self.total_matched / self.total_files) * 100
+
+    @property
+    def overall_compliance_percentage(self) -> float:
+        """Calculate compliance percentage across all files (matched + child namespaces)."""
+        if self.total_files == 0:
+            return 0.0
+        return ((self.total_matched + self.total_child_namespaces) / self.total_files) * 100
 
     def get_problem_assemblies(self) -> list[AssemblyNamespaceStats]:
         """Get assemblies that have namespace problems.
@@ -126,7 +135,5 @@ class NamespaceAnalysisReport:
             List of assemblies with mismatches or missing namespaces
         """
         return [
-            stats
-            for stats in self.assembly_stats.values()
-            if stats.unmatched_files > 0 or stats.no_namespace_files > 0
+            stats for stats in self.assembly_stats.values() if stats.unmatched_files > 0 or stats.no_namespace_files > 0
         ]

@@ -9,6 +9,9 @@ export function NamespacesTab({ reports }) {
   const [sort, setSort] = useState({ key: 'compliancePercentage', dir: 'asc' })
   const [expanded, setExpanded] = useState(new Set())
   const [search, setSearch] = useState('')
+  const [nsSort, setNsSort] = useState({ key: 'compliancePercentage', dir: 'asc' })
+  const [nsExpanded, setNsExpanded] = useState(new Set())
+  const [nsSearch, setNsSearch] = useState('')
 
   const rows = useMemo(() => {
     if (!ns) return []
@@ -32,6 +35,97 @@ export function NamespacesTab({ reports }) {
     })
   }, [ns, sort, search])
 
+  const nsRows = useMemo(() => {
+    if (!ns) return []
+    const scripts = reports.scripts?.data?.scripts
+    if (!scripts) return []
+
+    const map = new Map()
+
+    for (const script of Object.values(scripts)) {
+      if (!script.namespace) continue
+      const asm = ns.assemblies[script.assembly]
+      if (!asm) continue
+
+      const isViolating = asm.namespaceMismatches?.[script.namespace]?.includes(script.relativePath) ?? false
+      const isExact = !isViolating && script.namespace === asm.rootNamespace
+      const isChild = !isViolating && !isExact && asm.rootNamespace && script.namespace.startsWith(asm.rootNamespace + '.')
+
+      let entry = map.get(script.namespace)
+      if (!entry) {
+        entry = {
+          namespace: script.namespace,
+          scriptCount: 0,
+          matchedCount: 0,
+          childCount: 0,
+          mismatchedCount: 0,
+          assemblies: new Map(),
+        }
+        map.set(script.namespace, entry)
+      }
+
+      entry.scriptCount++
+      if (isViolating) entry.mismatchedCount++
+      else if (isExact) entry.matchedCount++
+      else if (isChild) entry.childCount++
+
+      let asmEntry = entry.assemblies.get(asm.name)
+      if (!asmEntry) {
+        asmEntry = { violating: false, paths: [] }
+        entry.assemblies.set(asm.name, asmEntry)
+      }
+      if (isViolating) asmEntry.violating = true
+      asmEntry.paths.push(script.relativePath)
+    }
+
+    let list = Array.from(map.values()).map(entry => {
+      const compliancePercentage =
+        entry.scriptCount > 0
+          ? ((entry.matchedCount + entry.childCount) / entry.scriptCount) * 100
+          : 100
+      const violatingAssemblies = []
+      const compliantAssemblies = []
+      for (const [name, a] of entry.assemblies) {
+        if (a.violating) violatingAssemblies.push(name)
+        else compliantAssemblies.push(name)
+      }
+      return {
+        ...entry,
+        compliancePercentage,
+        hasViolation: entry.mismatchedCount > 0,
+        assemblyCount: entry.assemblies.size,
+        violatingAssemblies,
+        compliantAssemblies,
+      }
+    })
+
+    if (nsSearch.trim()) {
+      const q = nsSearch.toLowerCase()
+      list = list.filter(
+        r =>
+          r.namespace.toLowerCase().includes(q) ||
+          r.violatingAssemblies.some(n => n.toLowerCase().includes(q)) ||
+          r.compliantAssemblies.some(n => n.toLowerCase().includes(q))
+      )
+    }
+
+    return list.sort((a, b) => {
+      const dir = nsSort.dir === 'asc' ? 1 : -1
+      let av, bv
+      if (nsSort.key === 'containingAssembly') {
+        av = a.violatingAssemblies[0] ?? a.compliantAssemblies[0] ?? ''
+        bv = b.violatingAssemblies[0] ?? b.compliantAssemblies[0] ?? ''
+      } else {
+        av = a[nsSort.key]
+        bv = b[nsSort.key]
+      }
+      if (typeof av === 'string' || typeof bv === 'string') {
+        return String(av ?? '').localeCompare(String(bv ?? '')) * dir
+      }
+      return ((av ?? 0) - (bv ?? 0)) * dir
+    })
+  }, [ns, reports.scripts, nsSort, nsSearch])
+
   if (!ns) {
     return (
       <EmptyState
@@ -50,6 +144,17 @@ export function NamespacesTab({ reports }) {
     if (next.has(guid)) next.delete(guid)
     else next.add(guid)
     setExpanded(next)
+  }
+
+  function toggleNsSort(key) {
+    setNsSort(s => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }))
+  }
+
+  function toggleNsRow(namespace) {
+    const next = new Set(nsExpanded)
+    if (next.has(namespace)) next.delete(namespace)
+    else next.add(namespace)
+    setNsExpanded(next)
   }
 
   const headlinePercentage =
@@ -171,6 +276,84 @@ export function NamespacesTab({ reports }) {
           </table>
         </div>
       </section>
+
+      <section>
+        <div className="flex items-baseline justify-between mb-5">
+          <SectionHeader index="02" title="Per-namespace breakdown" />
+        </div>
+
+        {!reports.scripts?.data?.scripts ? (
+          <p className="ijm-code text-sm text-ink-500">
+            Scripts report unavailable — generate <code>script_report.json</code> to populate this view.
+          </p>
+        ) : (
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="filter by namespace or assembly…"
+                value={nsSearch}
+                onChange={e => setNsSearch(e.target.value)}
+                className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-acid/60"
+              />
+            </div>
+
+            <div className="border border-ink-700 rounded overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-ink-900 text-ink-400 ijm-eyebrow">
+                  <tr>
+                    <th className="w-10" />
+                    <SortableTh k="namespace" sort={nsSort} onSort={toggleNsSort}>Namespace</SortableTh>
+                    <SortableTh k="containingAssembly" sort={nsSort} onSort={toggleNsSort}>Containing assembly</SortableTh>
+                    <SortableTh k="scriptCount" sort={nsSort} onSort={toggleNsSort} align="right">Files</SortableTh>
+                    <SortableTh k="compliancePercentage" sort={nsSort} onSort={toggleNsSort} align="right">Compliance</SortableTh>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-700">
+                  {nsRows.map(row => {
+                    const isOpen = nsExpanded.has(row.namespace)
+                    return (
+                      <Fragment key={row.namespace}>
+                        <tr
+                          onClick={() => toggleNsRow(row.namespace)}
+                          className="hover:bg-ink-800/50 cursor-pointer transition"
+                        >
+                          <td className="pl-4 py-3">
+                            {isOpen ? <ChevronDown size={14} className="text-ink-400" /> : <ChevronRight size={14} className="text-ink-400" />}
+                          </td>
+                          <td className="py-3 ijm-code text-xs">
+                            {row.hasViolation && <span className="inline-block w-1.5 h-1.5 rounded-full bg-danger mr-2 align-middle" />}
+                            {row.namespace}
+                          </td>
+                          <ContainingAssemblyCell row={row} />
+                          <td className="py-3 text-right ijm-metric text-xs">{formatNumber(row.scriptCount)}</td>
+                          <td className="py-3 pr-4 text-right">
+                            <CompliancePill value={row.compliancePercentage} />
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr>
+                            <td colSpan={5} className="bg-ink-950/60 px-10 py-6">
+                              <NamespaceDetail row={row} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                  {nsRows.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-10 text-ink-500 ijm-code text-sm">
+                        no namespaces match the filter
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
     </div>
   )
 }
@@ -284,6 +467,54 @@ function DetailCell({ label, value, tone = 'default' }) {
     <div>
       <div className="ijm-eyebrow text-ink-500 mb-1">{label}</div>
       <div className={`ijm-metric text-lg ${tones[tone]}`}>{value}</div>
+    </div>
+  )
+}
+
+function ContainingAssemblyCell({ row }) {
+  if (row.violatingAssemblies.length > 0) {
+    const N = row.assemblyCount - 1
+    return (
+      <td className="py-3 ijm-code text-xs">
+        <span className="text-danger">{row.violatingAssemblies[0]}</span>
+        {N > 0 && <span className="text-danger/60"> +{N}</span>}
+      </td>
+    )
+  }
+  const N = row.compliantAssemblies.length - 1
+  return (
+    <td className="py-3 ijm-code text-xs">
+      <span className="text-success">{row.compliantAssemblies[0]}</span>
+      {N > 0 && <span className="text-success/60"> +{N}</span>}
+    </td>
+  )
+}
+
+function NamespaceDetail({ row }) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-4 gap-4 ijm-code text-xs">
+        <DetailCell label="Matched" value={row.matchedCount} />
+        <DetailCell label="Child ns" value={row.childCount} />
+        <DetailCell label="Mismatched" value={row.mismatchedCount} tone={row.mismatchedCount > 0 ? 'danger' : 'default'} />
+        <DetailCell label="Assemblies" value={row.assemblyCount} />
+      </div>
+
+      <div className="space-y-2">
+        {Array.from(row.assemblies.entries()).map(([name, entry]) => (
+          <div key={name} className="border border-ink-700 rounded p-3 bg-ink-900/40">
+            <div className={`ijm-code text-xs mb-2 ${entry.violating ? 'text-danger' : 'text-success'}`}>{name}</div>
+            <div className="ijm-code text-[11px] text-ink-400 space-y-0.5">
+              {entry.paths.slice(0, 5).map((p, i) => (
+                <div key={i}>{p}</div>
+              ))}
+              {entry.paths.length > 5 && (
+                <div className="italic text-ink-500">and {entry.paths.length - 5} more</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

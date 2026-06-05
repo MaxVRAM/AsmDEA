@@ -8,6 +8,16 @@ import { EmptyState } from '../shared/EmptyState.jsx'
 const NODE_W = 190
 const NODE_H = 44
 
+// Highlight color for the secondary (Shift-clicked) node in pair-comparison mode.
+const SECONDARY = '#f23ca6'
+
+// Assembly nodes are the only ones eligible for pair comparison: external
+// namespace leaves, parent toggles, and group containers all carry a flag and
+// have no `guid`.
+const isAssemblyNode = (node) =>
+  !!node && !node.data?.isGroup && !node.data?.isExternal &&
+  !node.data?.isExternalParent && node.data?.guid != null
+
 function layoutGraph(nodes, edges) {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
@@ -36,6 +46,7 @@ export function DependenciesTab({ reports }) {
   const [hideOrphanNodes, setHideOrphanNodes] = useState(false)
   const [hideExternal, setHideExternal] = useState(true)
   const [selected, setSelected] = useState(null)
+  const [secondary, setSecondary] = useState(null)
   // Per-root expanded state; unset key defaults to collapsed (false)
   const [expandedRoots, setExpandedRoots] = useState(() => ({}))
 
@@ -135,6 +146,38 @@ export function DependenciesTab({ reports }) {
         }
       }
 
+      // ns -> (assemblyName -> [{ name, path }]): the individual scripts that
+      // import each external namespace, grouped by their owning assembly. Feeds
+      // the per-assembly script listing in the inspector's "Imported by" section.
+      const nsToAssemblyScripts = new Map()
+      for (const entry of Object.values(scripts)) {
+        const externalImports = entry.externalImports
+        if (!externalImports?.length || !entry.assembly) continue
+        const assemblyName = guidToName[entry.assembly]
+        if (!assemblyName || !includedNames.has(assemblyName)) continue
+        for (const ns of externalImports) {
+          if (!nsToAssemblyScripts.has(ns)) nsToAssemblyScripts.set(ns, new Map())
+          const byAssembly = nsToAssemblyScripts.get(ns)
+          if (!byAssembly.has(assemblyName)) byAssembly.set(assemblyName, [])
+          byAssembly.get(assemblyName).push({ name: entry.name, path: entry.relativePath })
+        }
+      }
+
+      // Build the inspector payload for an external namespace node: the sorted
+      // list of importing assemblies, plus the scripts within each.
+      const makeExternalRaw = (ns) => {
+        const byAssembly = nsToAssemblyScripts.get(ns) ?? new Map()
+        const scriptsByAssembly = {}
+        for (const [assemblyName, list] of byAssembly) {
+          scriptsByAssembly[assemblyName] = [...list].sort((a, b) => a.name.localeCompare(b.name))
+        }
+        return {
+          namespace: ns,
+          importingAssemblies: [...nsToAssemblyNames.get(ns)].sort(),
+          scriptsByAssembly
+        }
+      }
+
       if (nsToAssemblyNames.size > 0) {
         const maxX = Math.max(...positionedAssemblyNodes.map(n => n.position.x)) + NODE_W + 120
 
@@ -205,7 +248,7 @@ export function DependenciesTab({ reports }) {
               data: {
                 label: ns,
                 isExternal: true,
-                raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
+                raw: makeExternalRaw(ns)
               },
               style: childNodeStyle,
               position: { x: maxX, y: yCursor },
@@ -287,7 +330,7 @@ export function DependenciesTab({ reports }) {
               data: {
                 label: ns,
                 isExternal: true,
-                raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
+                raw: makeExternalRaw(ns)
               },
               parentId: groupId,
               extent: 'parent',
@@ -338,21 +381,83 @@ export function DependenciesTab({ reports }) {
   }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots])
 
   const selectedId = selected?.id ?? null
+  const secondaryId = secondary?.id ?? null
+  const isPairMode = !!(selected && secondary)
+
+  // Map<assemblyGUID, Set<namespace>>: every namespace declared by the scripts an
+  // assembly owns. Combined with the assembly's rootNamespace, this is the set of
+  // namespaces "belonging to" that assembly for import matching.
+  const declaredNsByGuid = useMemo(() => {
+    const map = new Map()
+    if (!scripts) return map
+    for (const entry of Object.values(scripts)) {
+      if (!entry.assembly || !entry.namespace) continue
+      if (!map.has(entry.assembly)) map.set(entry.assembly, new Set())
+      map.get(entry.assembly).add(entry.namespace)
+    }
+    return map
+  }, [scripts])
+
+  // Pair-comparison payload. Lists the scripts in the source assembly that import
+  // the target assembly's namespaces. Auto-detect direction: try A→B first, and if
+  // that's empty fall back to B→A; only when both are empty is there "no dependency".
+  const pairData = useMemo(() => {
+    if (!selected || !secondary || !scripts) return null
+    if (!isAssemblyNode(selected) || !isAssemblyNode(secondary)) return null
+
+    const refsFrom = (srcGuid, tgtGuid, tgtRootNs) => {
+      const nsSet = new Set(declaredNsByGuid.get(tgtGuid) ?? [])
+      if (tgtRootNs) nsSet.add(tgtRootNs)
+      const matches = (imp) =>
+        (tgtRootNs && (imp === tgtRootNs || imp.startsWith(tgtRootNs + '.'))) || nsSet.has(imp)
+
+      const out = []
+      for (const entry of Object.values(scripts)) {
+        if (entry.assembly !== srcGuid) continue
+        const matched = (entry.imports ?? []).filter(matches)
+        if (matched.length) {
+          out.push({ name: entry.name, path: entry.relativePath, namespaces: [...new Set(matched)].sort() })
+        }
+      }
+      return out.sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    const a = { guid: selected.data.guid, name: selected.id, root: selected.data.raw?.rootNamespace || '' }
+    const b = { guid: secondary.data.guid, name: secondary.id, root: secondary.data.raw?.rootNamespace || '' }
+
+    const aToB = refsFrom(a.guid, b.guid, b.root)
+    if (aToB.length) return { srcName: a.name, tgtName: b.name, scripts: aToB, aName: a.name, bName: b.name }
+
+    const bToA = refsFrom(b.guid, a.guid, a.root)
+    if (bToA.length) return { srcName: b.name, tgtName: a.name, scripts: bToA, aName: a.name, bName: b.name }
+
+    return { srcName: a.name, tgtName: b.name, scripts: [], aName: a.name, bName: b.name }
+  }, [scripts, declaredNsByGuid, selected, secondary])
 
   const displayNodes = graph
-    ? graph.nodes.map(n =>
-        n.id === selectedId
-          ? { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
-          : n
-      )
+    ? graph.nodes.map(n => {
+        if (n.id === selectedId)
+          return { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
+        if (n.id === secondaryId)
+          return { ...n, style: { ...n.style, background: '#2a0a1d', border: `2px solid ${SECONDARY}`, color: SECONDARY } }
+        return n
+      })
     : []
 
   const displayEdges = graph
-    ? graph.edges.map(e =>
-        selectedId && (e.source === selectedId || e.target === selectedId)
-          ? { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
-          : e
-      )
+    ? graph.edges.map(e => {
+        const touchesPair =
+          secondaryId &&
+          ((e.source === selectedId && e.target === secondaryId) ||
+            (e.source === secondaryId && e.target === selectedId))
+        if (touchesPair)
+          return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
+        if (selectedId && (e.source === selectedId || e.target === selectedId))
+          return { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
+        if (secondaryId && (e.source === secondaryId || e.target === secondaryId))
+          return { ...e, animated: true, style: { ...e.style, stroke: SECONDARY, strokeWidth: 2 } }
+        return e
+      })
     : []
 
   if (!asmdef) {
@@ -385,15 +490,23 @@ export function DependenciesTab({ reports }) {
             minZoom={0.1}
             maxZoom={2}
             colorMode="dark"
-            onNodeClick={(_, node) => {
+            selectionKeyCode={null}
+            onNodeClick={(event, node) => {
               if (node.data?.isGroup) return
               if (node.data?.isExternalParent) {
                 toggleRoot(node.data.root)
-              } else {
-                setSelected(node)
+                return
               }
+              // Shift + a different assembly while a primary assembly is selected → secondary
+              if (event.shiftKey && isAssemblyNode(selected) && isAssemblyNode(node) && node.id !== selected.id) {
+                setSecondary(node)
+                return
+              }
+              // Any other click → normal (re)select; clears any pairing
+              setSelected(node)
+              setSecondary(null)
             }}
-            onPaneClick={() => setSelected(null)}
+            onPaneClick={() => { setSelected(null); setSecondary(null) }}
             proOptions={{ hideAttribution: false }}
           >
             <Background color="#242429" gap={24} />
@@ -401,9 +514,15 @@ export function DependenciesTab({ reports }) {
           </ReactFlow>
         </div>
 
-        {selected
-          ? <NodeInspector node={selected} onClose={() => setSelected(null)} />
-          : <EmptyInspector />}
+        {isPairMode && pairData
+          ? <PairInspector
+              data={pairData}
+              onClose={() => { setSelected(null); setSecondary(null) }}
+              onClear={() => setSecondary(null)}
+            />
+          : selected
+            ? <NodeInspector node={selected} onClose={() => setSelected(null)} />
+            : <EmptyInspector />}
       </div>
 
       <Legend />
@@ -458,6 +577,70 @@ function EmptyInspector() {
   )
 }
 
+function PairInspector({ data, onClose, onClear }) {
+  const { srcName, tgtName, scripts, aName, bName } = data
+  const hasDeps = scripts.length > 0
+  return (
+    <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <div className="ijm-code text-sm break-all">
+            <span className="text-accent-acid">{srcName}</span>
+          </div>
+          <div className="ijm-code text-sm break-all">
+            <span className="text-ink-500"> → </span>
+            <span style={{ color: SECONDARY }}>{tgtName}</span>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-ink-400 hover:text-ink-100 text-xs"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      {!hasDeps ? (
+        <p className="ijm-code text-xs text-ink-400 italic">
+          No dependencies between {aName} and {bName} assemblies
+        </p>
+      ) : (
+        <dl className="space-y-3 text-xs">
+          <div>
+            <dt className="ijm-eyebrow text-ink-400 mb-1">
+              Script imports ({scripts.length})
+            </dt>
+          </div>
+          <div>
+            <dd className="space-y-2">
+              {scripts.map(s => (
+                <div key={s.path ?? s.name}>
+                  <div className="font-mono text-ink-200 break-all" title={s.path}>{s.name}</div>
+                  <ul className="mt-1 ml-3 space-y-0.5 border-l border-ink-700 pl-3">
+                    {s.namespaces.map(ns => (
+                      <li key={ns} className="font-mono text-[11px] text-ink-400 break-all">{ns}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </dd>
+          </div>
+        </dl>
+      )}
+
+      {onClear && (
+        <button
+          onClick={onClear}
+          className="mt-5 ijm-code text-[11px] text-ink-400 hover:text-ink-100 underline"
+        >
+          ← back to {aName}
+        </button>
+      )}
+    </aside>
+  )
+}
+
 function NodeInspector({ node, onClose }) {
   if (node.data?.isExternal) {
     const raw = node.data.raw
@@ -480,10 +663,24 @@ function NodeInspector({ node, onClose }) {
           <Field label="Namespace" value={raw.namespace} mono />
           <div>
             <dt className="ijm-eyebrow text-ink-400 mb-1">Imported by</dt>
-            <dd className="space-y-1">
-              {raw.importingAssemblies.map(name => (
-                <div key={name} className="font-mono text-ink-200 break-all">{name}</div>
-              ))}
+            <dd className="space-y-3">
+              {raw.importingAssemblies.map(name => {
+                const scripts = raw.scriptsByAssembly?.[name] ?? []
+                return (
+                  <div key={name}>
+                    <div className="font-mono text-ink-200 break-all">{name}</div>
+                    {scripts.length > 0 && (
+                      <ul className="mt-1 ml-3 space-y-0.5 border-l border-ink-700 pl-3">
+                        {scripts.map(s => (
+                          <li key={s.path ?? s.name} className="font-mono text-[11px] text-ink-400 break-all" title={s.path}>
+                            {s.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )
+              })}
             </dd>
           </div>
         </dl>

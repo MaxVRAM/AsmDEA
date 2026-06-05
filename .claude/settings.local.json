@@ -7,7 +7,8 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Source\\\\Personal\\\\AsmDEA\\\\dashboard\" -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(.venv/Scripts/python -m pytest tests/unit/test_filter_path.py -v)",
-      "Bash(.venv/Scripts/python -m pytest --tb=short -q)"
+      "Bash(.venv/Scripts/python -m pytest --tb=short -q)",
+      "Bash(npm run *)"
     ]
   }
 }

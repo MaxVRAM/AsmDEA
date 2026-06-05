@@ -159,26 +159,9 @@ export function DependenciesTab({ reports }) {
           return members.length > 1 || members[0] !== root
         }
 
-        // Count total visible rows for vertical centering
         const gap = 16
-        let visibleExternalRowCount = 0
-        for (const root of sortedRoots) {
-          if (!isFoldable(root)) {
-            visibleExternalRowCount += 1 // single leaf
-            continue
-          }
-          visibleExternalRowCount += 1 // parent row
-          if (isExpanded(root)) visibleExternalRowCount += rootGroups.get(root).length
-        }
-
-        const minAssemblyY = Math.min(...positionedAssemblyNodes.map(n => n.position.y))
-        const maxAssemblyY = Math.max(...positionedAssemblyNodes.map(n => n.position.y))
-        const projectCenterY = (minAssemblyY + maxAssemblyY + NODE_H) / 2
-        const totalExternalHeight = visibleExternalRowCount * NODE_H + (visibleExternalRowCount - 1) * gap
-        const topY = projectCenterY - totalExternalHeight / 2
-
-        const externalNodes = []
-        let rowIndex = 0
+        const pad = 12
+        const childGap = 8
 
         const childNodeStyle = {
           background: '#15151a',
@@ -190,6 +173,27 @@ export function DependenciesTab({ reports }) {
           fontFamily: 'JetBrains Mono, monospace',
           width: NODE_W
         }
+
+        // Height of an expanded group container: top/bottom padding, the header
+        // row, then one row per child, all separated by childGap.
+        const containerHeight = (childCount) =>
+          pad * 2 + NODE_H * (childCount + 1) + childGap * childCount
+
+        const blockHeight = (root) => {
+          if (!isFoldable(root) || !isExpanded(root)) return NODE_H
+          return containerHeight(rootGroups.get(root).length)
+        }
+
+        const minAssemblyY = Math.min(...positionedAssemblyNodes.map(n => n.position.y))
+        const maxAssemblyY = Math.max(...positionedAssemblyNodes.map(n => n.position.y))
+        const projectCenterY = (minAssemblyY + maxAssemblyY + NODE_H) / 2
+        const totalExternalHeight =
+          sortedRoots.reduce((sum, root) => sum + blockHeight(root), 0) +
+          gap * Math.max(0, sortedRoots.length - 1)
+        const topY = projectCenterY - totalExternalHeight / 2
+
+        const externalNodes = []
+        let yCursor = topY
 
         for (const root of sortedRoots) {
           const children = rootGroups.get(root)
@@ -204,26 +208,65 @@ export function DependenciesTab({ reports }) {
                 raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
               },
               style: childNodeStyle,
-              position: { x: maxX, y: topY + rowIndex * (NODE_H + gap) },
+              position: { x: maxX, y: yCursor },
               sourcePosition: Position.Right,
               targetPosition: Position.Left
             })
-            rowIndex++
+            yCursor += NODE_H + gap
             continue
           }
 
-          const expanded = isExpanded(root)
+          if (!isExpanded(root)) {
+            // Collapsed: standalone toggle node
+            externalNodes.push({
+              id: `ext-parent::${root}`,
+              data: { label: `▶ ${root}`, isExternalParent: true, root },
+              style: {
+                background: '#1f1f28',
+                border: '1px solid #5a5a66',
+                color: '#b8b8c4',
+                padding: '10px 12px',
+                borderRadius: 4,
+                fontSize: 11,
+                fontFamily: 'JetBrains Mono, monospace',
+                width: NODE_W,
+                cursor: 'pointer'
+              },
+              position: { x: maxX, y: yCursor },
+              sourcePosition: Position.Right,
+              targetPosition: Position.Left
+            })
+            yCursor += NODE_H + gap
+            continue
+          }
 
-          // Parent node
+          // Expanded: header + children share one container background.
+          const cH = containerHeight(children.length)
+          const groupId = `ext-group::${root}`
+          externalNodes.push({
+            id: groupId,
+            type: 'group',
+            data: { isGroup: true },
+            selectable: false,
+            draggable: false,
+            style: {
+              background: 'rgba(90, 90, 102, 0.08)',
+              border: '1px solid #3a3a44',
+              borderRadius: 8,
+              width: NODE_W + pad * 2,
+              height: cH
+            },
+            position: { x: maxX - pad, y: yCursor }
+          })
+
+          // Header toggle node, positioned relative to its group container.
           externalNodes.push({
             id: `ext-parent::${root}`,
-            data: {
-              label: `${expanded ? '▼' : '▶'} ${root}`,
-              isExternalParent: true,
-              root
-            },
+            data: { label: `▼ ${root}`, isExternalParent: true, root },
+            parentId: groupId,
+            extent: 'parent',
             style: {
-              background: expanded ? '#1a1a22' : '#1f1f28',
+              background: '#1a1a22',
               border: '1px solid #5a5a66',
               color: '#b8b8c4',
               padding: '10px 12px',
@@ -233,29 +276,29 @@ export function DependenciesTab({ reports }) {
               width: NODE_W,
               cursor: 'pointer'
             },
-            position: { x: maxX, y: topY + rowIndex * (NODE_H + gap) },
+            position: { x: pad, y: pad },
             sourcePosition: Position.Right,
             targetPosition: Position.Left
           })
-          rowIndex++
 
-          if (expanded) {
-            for (const ns of children) {
-              externalNodes.push({
-                id: `ext::${ns}`,
-                data: {
-                  label: ns,
-                  isExternal: true,
-                  raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
-                },
-                style: childNodeStyle,
-                position: { x: maxX + 24, y: topY + rowIndex * (NODE_H + gap) },
-                sourcePosition: Position.Right,
-                targetPosition: Position.Left
-              })
-              rowIndex++
-            }
-          }
+          children.forEach((ns, i) => {
+            externalNodes.push({
+              id: `ext::${ns}`,
+              data: {
+                label: ns,
+                isExternal: true,
+                raw: { namespace: ns, importingAssemblies: [...nsToAssemblyNames.get(ns)].sort() }
+              },
+              parentId: groupId,
+              extent: 'parent',
+              style: childNodeStyle,
+              position: { x: pad, y: pad + (NODE_H + childGap) * (i + 1) },
+              sourcePosition: Position.Right,
+              targetPosition: Position.Left
+            })
+          })
+
+          yCursor += cH + gap
         }
 
         // Build external edges; deduplicate collapsed-group edges with a Set
@@ -343,6 +386,7 @@ export function DependenciesTab({ reports }) {
             maxZoom={2}
             colorMode="dark"
             onNodeClick={(_, node) => {
+              if (node.data?.isGroup) return
               if (node.data?.isExternalParent) {
                 toggleRoot(node.data.root)
               } else {

@@ -381,7 +381,6 @@ export function DependenciesTab({ reports }) {
   }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots])
 
   const selectedId = selected?.id ?? null
-  const secondaryId = secondary?.id ?? null
   const isPairMode = !!(selected && secondary)
 
   // Map<assemblyGUID, Set<namespace>>: every namespace declared by the scripts an
@@ -422,42 +421,62 @@ export function DependenciesTab({ reports }) {
       return out.sort((a, b) => a.name.localeCompare(b.name))
     }
 
-    const a = { guid: selected.data.guid, name: selected.id, root: selected.data.raw?.rootNamespace || '' }
-    const b = { guid: secondary.data.guid, name: secondary.id, root: secondary.data.raw?.rootNamespace || '' }
+    const a = { node: selected, guid: selected.data.guid, name: selected.id, root: selected.data.raw?.rootNamespace || '' }
+    const b = { node: secondary, guid: secondary.data.guid, name: secondary.id, root: secondary.data.raw?.rootNamespace || '' }
 
+    // Dependency direction — NOT click order — decides which node is the source (A)
+    // and which is the target/dependency (B). The source is whichever depends on the other.
     const aToB = refsFrom(a.guid, b.guid, b.root)
-    if (aToB.length) return { srcName: a.name, tgtName: b.name, scripts: aToB, aName: a.name, bName: b.name }
+    if (aToB.length) return { srcName: a.name, tgtName: b.name, srcNode: a.node, tgtNode: b.node, scripts: aToB, aName: a.name, bName: b.name }
 
     const bToA = refsFrom(b.guid, a.guid, a.root)
-    if (bToA.length) return { srcName: b.name, tgtName: a.name, scripts: bToA, aName: a.name, bName: b.name }
+    if (bToA.length) return { srcName: b.name, tgtName: a.name, srcNode: b.node, tgtNode: a.node, scripts: bToA, aName: a.name, bName: b.name }
 
-    return { srcName: a.name, tgtName: b.name, scripts: [], aName: a.name, bName: b.name }
+    return { srcName: a.name, tgtName: b.name, srcNode: a.node, tgtNode: b.node, scripts: [], aName: a.name, bName: b.name }
   }, [scripts, declaredNsByGuid, selected, secondary])
+
+  // In pair mode, source/target are role-based (from pairData), not click order.
+  const pairSrcId = isPairMode && pairData ? pairData.srcName : null
+  const pairTgtId = isPairMode && pairData ? pairData.tgtName : null
 
   const displayNodes = graph
     ? graph.nodes.map(n => {
+        // Pair mode: the source (A) is always acid-green and the target/dependency (B)
+        // is always pink — independent of which node was clicked first.
+        if (pairSrcId) {
+          if (n.id === pairSrcId)
+            return { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
+          if (n.id === pairTgtId)
+            return { ...n, style: { ...n.style, background: '#2a0a1d', border: `2px solid ${SECONDARY}`, color: SECONDARY } }
+          return n
+        }
         if (n.id === selectedId)
           return { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
-        if (n.id === secondaryId)
-          return { ...n, style: { ...n.style, background: '#2a0a1d', border: `2px solid ${SECONDARY}`, color: SECONDARY } }
         return n
       })
     : []
 
   const displayEdges = graph
-    ? graph.edges.map(e => {
-        const touchesPair =
-          secondaryId &&
-          ((e.source === selectedId && e.target === secondaryId) ||
-            (e.source === secondaryId && e.target === selectedId))
-        if (touchesPair)
-          return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
-        if (selectedId && (e.source === selectedId || e.target === selectedId))
-          return { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
-        if (secondaryId && (e.source === secondaryId || e.target === secondaryId))
-          return { ...e, animated: true, style: { ...e.style, stroke: SECONDARY, strokeWidth: 2 } }
-        return e
-      })
+    ? (pairSrcId
+        // Pair mode: draw only A's outgoing dependencies and B's outgoing
+        // dependencies. B's *incoming* edges (its other dependents) are hidden, so
+        // what remains is A's chain — its direct deps plus the implicit ones it
+        // inherits through B.
+        ? graph.edges
+            .filter(e => e.source === pairSrcId || e.source === pairTgtId)
+            .map(e => {
+              if (e.source === pairSrcId && e.target === pairTgtId)
+                return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
+              if (e.source === pairSrcId)
+                return { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
+              // e.source === pairTgtId → B's outgoing deps (A's implicit dependencies)
+              return { ...e, animated: true, style: { ...e.style, stroke: SECONDARY, strokeWidth: 2 } }
+            })
+        : graph.edges.map(e =>
+            selectedId && (e.source === selectedId || e.target === selectedId)
+              ? { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
+              : e
+          ))
     : []
 
   if (!asmdef) {
@@ -518,7 +537,7 @@ export function DependenciesTab({ reports }) {
           ? <PairInspector
               data={pairData}
               onClose={() => { setSelected(null); setSecondary(null) }}
-              onClear={() => setSecondary(null)}
+              onClear={() => { setSelected(pairData.srcNode); setSecondary(null) }}
             />
           : selected
             ? <NodeInspector node={selected} onClose={() => setSelected(null)} />
@@ -634,7 +653,7 @@ function PairInspector({ data, onClose, onClear }) {
           onClick={onClear}
           className="mt-5 ijm-code text-[11px] text-ink-400 hover:text-ink-100 underline"
         >
-          ← back to {aName}
+          ← back to {srcName}
         </button>
       )}
     </aside>

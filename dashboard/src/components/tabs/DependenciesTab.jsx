@@ -45,7 +45,7 @@ export function DependenciesTab({ reports }) {
   const [hideUnityBuiltins, setHideUnityBuiltins] = useState(true)
   const [onlyCycles, setOnlyCycles] = useState(false)
   const [hideOrphanNodes, setHideOrphanNodes] = useState(false)
-  const [hideExternal, setHideExternal] = useState(true)
+  const [hideExternal, setHideExternal] = useState(false)
   const [selected, setSelected] = useState(null)
   const [secondary, setSecondary] = useState(null)
   // Per-root expanded state; unset key defaults to collapsed (false)

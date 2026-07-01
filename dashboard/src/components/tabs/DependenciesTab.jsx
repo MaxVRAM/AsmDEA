@@ -11,12 +11,13 @@ const NODE_H = 44
 // Highlight color for the secondary (Shift-clicked) node in pair-comparison mode.
 const SECONDARY = '#f23ca6'
 
-// Assembly nodes are the only ones eligible for pair comparison: external
-// namespace leaves, parent toggles, and group containers all carry a flag and
-// have no `guid`.
+// Assembly nodes are the only ones eligible as the *source* in pair comparison.
 const isAssemblyNode = (node) =>
   !!node && !node.data?.isGroup && !node.data?.isExternal &&
   !node.data?.isExternalParent && node.data?.guid != null
+
+// External leaf nodes (ext::${ns}) are eligible as the *target* in pair comparison.
+const isExternalNode = (node) => !!node && node.data?.isExternal === true
 
 function layoutGraph(nodes, edges) {
   const g = new dagre.graphlib.Graph()
@@ -402,7 +403,28 @@ export function DependenciesTab({ reports }) {
   // that's empty fall back to B→A; only when both are empty is there "no dependency".
   const pairData = useMemo(() => {
     if (!selected || !secondary || !scripts) return null
-    if (!isAssemblyNode(selected) || !isAssemblyNode(secondary)) return null
+    if (!isAssemblyNode(selected) || (!isAssemblyNode(secondary) && !isExternalNode(secondary))) return null
+
+    if (isExternalNode(secondary)) {
+      const ns = secondary.data.label
+      const out = []
+      for (const entry of Object.values(scripts)) {
+        if (entry.assembly !== selected.data.guid) continue
+        const matched = (entry.imports ?? []).filter(imp => imp === ns || imp.startsWith(ns + '.'))
+        if (matched.length)
+          out.push({ name: entry.name, path: entry.relativePath, namespaces: [...new Set(matched)].sort() })
+      }
+      return {
+        srcName: selected.id,
+        tgtName: ns,
+        tgtId: secondary.id,
+        srcNode: selected,
+        tgtNode: secondary,
+        scripts: out.sort((a, b) => a.name.localeCompare(b.name)),
+        aName: selected.id,
+        bName: ns,
+      }
+    }
 
     const refsFrom = (srcGuid, tgtGuid, tgtRootNs) => {
       const nsSet = new Set(declaredNsByGuid.get(tgtGuid) ?? [])
@@ -437,7 +459,7 @@ export function DependenciesTab({ reports }) {
 
   // In pair mode, source/target are role-based (from pairData), not click order.
   const pairSrcId = isPairMode && pairData ? pairData.srcName : null
-  const pairTgtId = isPairMode && pairData ? pairData.tgtName : null
+  const pairTgtId = isPairMode && pairData ? (pairData.tgtId ?? pairData.tgtName) : null
 
   const displayNodes = graph
     ? graph.nodes.map(n => {
@@ -458,18 +480,13 @@ export function DependenciesTab({ reports }) {
 
   const displayEdges = graph
     ? (pairSrcId
-        // Pair mode: draw only A's outgoing dependencies and B's outgoing
-        // dependencies. B's *incoming* edges (its other dependents) are hidden, so
-        // what remains is A's chain — its direct deps plus the implicit ones it
-        // inherits through B.
+        // Pair mode: draw only the direct A→B link plus B's outgoing dependencies.
         ? graph.edges
-            .filter(e => e.source === pairSrcId || e.source === pairTgtId)
+            .filter(e => (e.source === pairSrcId && e.target === pairTgtId) || e.source === pairTgtId)
             .map(e => {
-              if (e.source === pairSrcId && e.target === pairTgtId)
-                return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
               if (e.source === pairSrcId)
-                return { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
-              // e.source === pairTgtId → B's outgoing deps (A's implicit dependencies)
+                return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
+              // e.source === pairTgtId → B's transitive dependencies
               return { ...e, animated: true, style: { ...e.style, stroke: SECONDARY, strokeWidth: 2 } }
             })
         : graph.edges.map(e =>
@@ -516,10 +533,18 @@ export function DependenciesTab({ reports }) {
                 toggleRoot(node.data.root)
                 return
               }
-              // Shift + a different assembly while a primary assembly is selected → secondary
-              if (event.shiftKey && isAssemblyNode(selected) && isAssemblyNode(node) && node.id !== selected.id) {
-                setSecondary(node)
-                return
+              // Shift+click enters A/B mode regardless of selection order.
+              // Normalize: assembly is always `selected`, external (if any) is `secondary`.
+              if (event.shiftKey && node.id !== selected?.id) {
+                if (isAssemblyNode(selected) && (isAssemblyNode(node) || isExternalNode(node))) {
+                  setSecondary(node)
+                  return
+                }
+                if (isExternalNode(selected) && isAssemblyNode(node)) {
+                  setSelected(node)
+                  setSecondary(selected)
+                  return
+                }
               }
               // Any other click → normal (re)select; clears any pairing
               setSelected(node)

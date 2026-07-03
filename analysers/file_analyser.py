@@ -104,8 +104,18 @@ class FileAnalyser:
         norm = rel_str.replace("\\", "/")
         return any(("/" + p + "/") in ("/" + norm + "/") for p in self.filter_paths)
 
-    def _iter_cs_files(self) -> list[Path]:
-        """Walk the project tree, skipping filtered and Unity-hidden (~) directories."""
+    def _iter_files_by_suffix(self, suffix: str) -> list[Path]:
+        """Walk the project tree collecting files with ``suffix``.
+
+        Applies the same pruning as the C# walk: skips filtered directories and
+        Unity-hidden (``~``) directories so ``os.walk`` never descends into them.
+
+        Args:
+            suffix: File suffix to match (e.g. ``".cs"`` or ``".prefab"``).
+
+        Returns:
+            List of matching file paths.
+        """
         result = []
         for dirpath, dirnames, filenames in os.walk(self.root_path):
             dir_path = Path(dirpath)
@@ -124,9 +134,13 @@ class FileAnalyser:
             dirnames[:] = [d for d in dirnames if "~" not in d]
 
             for filename in filenames:
-                if filename.endswith(".cs"):
+                if filename.endswith(suffix):
                     result.append(dir_path / filename)
         return result
+
+    def _iter_cs_files(self) -> list[Path]:
+        """Walk the project tree, skipping filtered and Unity-hidden (~) directories."""
+        return self._iter_files_by_suffix(".cs")
 
     def analyse(self) -> dict[str, Any]:
         """Perform complete file ownership analysis.

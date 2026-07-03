@@ -18,6 +18,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -32,7 +33,13 @@ try:
 except ImportError:
     pass
 
-from analysers import CycleAnalyser, FileAnalyser, NamespaceAnalyser, ScriptAnalyser
+from analysers import (
+    CycleAnalyser,
+    FileAnalyser,
+    NamespaceAnalyser,
+    PrefabAnalyser,
+    ScriptAnalyser,
+)
 from common import (
     FilepathType,
     apply_filters,
@@ -55,6 +62,7 @@ from reporting import (
     EnforcementReporter,
     FileAnalysisReporter,
     NamespaceReporter,
+    PrefabReporter,
     ScriptReporter,
 )
 
@@ -266,6 +274,13 @@ Environment Variables (from .env file):
         "map-scripts",
         parents=[project_args],
         help="Build per-script metadata (script_report.json)",
+    )
+
+    # map-prefabs command
+    subparsers.add_parser(
+        "map-prefabs",
+        parents=[project_args],
+        help="Build per-prefab metadata (prefab_report.json)",
     )
 
     # validate-namespaces command
@@ -559,6 +574,61 @@ def cmd_map_scripts(args: argparse.Namespace, logger: Any) -> int:
     return 0
 
 
+def cmd_map_prefabs(args: argparse.Namespace, logger: Any) -> int:
+    """Build per-prefab metadata report (prefab_report.json).
+
+    Requires ``script_report.json`` (produced by ``map-scripts``) to resolve
+    script GUIDs to names/assemblies. Does not mutate the asmdef dictionary.
+    """
+    if not validate_project_path(args.project_path, logger):
+        return 2
+
+    console = get_console()
+    if not args.dict_file.exists():
+        console.print(f"[error]Dictionary file not found:[/] [path]{args.dict_file}[/]")
+        console.print("[muted]Run 'build-dict' command first to create the dictionary[/]")
+        return 2
+
+    script_report_path = args.output_dir / "script_report.json"
+    if not script_report_path.exists():
+        console.print(
+            f"[error]Script report not found:[/] [path]{script_report_path}[/]"
+        )
+        console.print("[muted]Run 'map-scripts' command first to create the script report[/]")
+        return 2
+
+    asmdef_dict = load_asmdef_dict(args.dict_file)
+    asmdef_dict = apply_filters(
+        asmdef_dict,
+        filter_root=getattr(args, "filter_root", None) or [],
+        filter_any=getattr(args, "filter_any", None) or [],
+        filter_path=getattr(args, "filter_path", None) or [],
+    )
+
+    with open(script_report_path, encoding="utf-8") as f:
+        script_report = json.load(f)
+
+    analyser = PrefabAnalyser(
+        asmdef_dict,
+        args.project_path,
+        filter_paths=getattr(args, "filter_path", None) or [],
+        script_report=script_report,
+    )
+    result = analyser.analyse()
+
+    reporter = PrefabReporter(
+        verbose=args.verbose,
+        filepath_type=FilepathType.parse(getattr(args, "filepath_type", None)),
+        root_path=args.project_path,
+    )
+    reporter.print_console_report(result)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    reporter.save_json_report(result, args.output_dir / "prefab_report.json")
+
+    return 0
+
+
 def cmd_validate_namespaces(args: argparse.Namespace, logger: Any) -> int:
     """Validate namespace compliance."""
     if not validate_project_path(args.project_path, logger):
@@ -720,26 +790,30 @@ def cmd_analyze(args: argparse.Namespace, logger: Any) -> int:
     print_analysis_header()
 
     # Step 1: Build dictionary
-    print_section_header("Building Assembly Dictionary", step=1, total_steps=5)
+    print_section_header("Building Assembly Dictionary", step=1, total_steps=6)
     result = cmd_build_dict(args, logger)
     if result != 0:
         return result
 
     # Step 2: Map files
-    print_section_header("Mapping C# Files to Assemblies", step=2, total_steps=5)
+    print_section_header("Mapping C# Files to Assemblies", step=2, total_steps=6)
     cmd_map_files(args, logger)
 
     # Step 3: Map scripts (per-script metadata view)
-    print_section_header("Mapping Scripts", step=3, total_steps=5)
+    print_section_header("Mapping Scripts", step=3, total_steps=6)
     cmd_map_scripts(args, logger)
 
-    # Step 4: Validate namespaces
-    print_section_header("Validating Namespace Compliance", step=4, total_steps=5)
+    # Step 4: Map prefabs (per-prefab metadata view; needs script_report.json)
+    print_section_header("Mapping Prefabs", step=4, total_steps=6)
+    cmd_map_prefabs(args, logger)
+
+    # Step 5: Validate namespaces
+    print_section_header("Validating Namespace Compliance", step=5, total_steps=6)
     if cmd_validate_namespaces(args, logger) != 0:
         exit_code = 1
 
-    # Step 5: Detect cycles
-    print_section_header("Detecting Circular Dependencies", step=5, total_steps=5)
+    # Step 6: Detect cycles
+    print_section_header("Detecting Circular Dependencies", step=6, total_steps=6)
     if cmd_detect_cycles(args, logger) != 0:
         exit_code = 1
 
@@ -774,6 +848,7 @@ def main() -> int:
         "detect-cycles": cmd_detect_cycles,
         "map-files": cmd_map_files,
         "map-scripts": cmd_map_scripts,
+        "map-prefabs": cmd_map_prefabs,
         "validate-namespaces": cmd_validate_namespaces,
         "sort-deps": cmd_sort_deps,
         "restore-backup": cmd_restore_backup,

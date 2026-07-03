@@ -5,6 +5,7 @@ from .cycle_reporter import CycleReporter
 from .enforcement_reporter import EnforcementReporter
 from .file_reporter import FileAnalysisReporter
 from .namespace_reporter import NamespaceReporter
+from .prefab_reporter import PrefabReporter
 from .script_reporter import ScriptReporter
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "EnforcementReporter",
     "NamespaceReporter",
     "FileAnalysisReporter",
+    "PrefabReporter",
     "ScriptReporter",
 ]

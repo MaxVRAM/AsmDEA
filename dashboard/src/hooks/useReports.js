@@ -5,7 +5,8 @@ const REPORT_FILES = {
   cycles: '/reports/cycle_report.json',
   files: '/reports/file_report.json',
   namespaces: '/reports/namespace_report.json',
-  scripts: '/reports/script_report.json'
+  scripts: '/reports/script_report.json',
+  prefabs: '/reports/prefab_report.json'
 }
 
 async function fetchReport(path) {
@@ -27,7 +28,8 @@ export function useReports() {
     cycles: { status: 'loading', path: REPORT_FILES.cycles },
     files: { status: 'loading', path: REPORT_FILES.files },
     namespaces: { status: 'loading', path: REPORT_FILES.namespaces },
-    scripts: { status: 'loading', path: REPORT_FILES.scripts }
+    scripts: { status: 'loading', path: REPORT_FILES.scripts },
+    prefabs: { status: 'loading', path: REPORT_FILES.prefabs }
   })
   const [loadedAt, setLoadedAt] = useState(null)
 

@@ -10,6 +10,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // No-FOUC bootstrap: re-apply the last selected scheme's CSS variables
+      // synchronously before React mounts. Falls back to the GitHub Dark
+      // defaults baked into :root (src/index.css) on first-ever visit.
+      (function () {
+        try {
+          var cached = JSON.parse(localStorage.getItem('asmdea:colour-vars') || 'null')
+          if (cached && cached.vars) {
+            var root = document.documentElement
+            for (var prop in cached.vars) root.style.setProperty(prop, cached.vars[prop])
+            if (cached.colorScheme) root.style.colorScheme = cached.colorScheme
+          }
+        } catch (e) { /* ignore */ }
+      })()
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

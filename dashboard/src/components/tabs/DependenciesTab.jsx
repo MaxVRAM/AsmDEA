@@ -4,12 +4,10 @@ import '@xyflow/react/dist/style.css'
 import dagre from 'dagre'
 import { buildGuidLookup } from '../../utils/format.js'
 import { EmptyState } from '../shared/EmptyState.jsx'
+import { useTheme } from '../../theme/useTheme.js'
 
 const NODE_W = 190
 const NODE_H = 44
-
-// Highlight color for the secondary (Shift-clicked) node in pair-comparison mode.
-const SECONDARY = '#f23ca6'
 
 // Assembly nodes are the only ones eligible as the *source* in pair comparison.
 const isAssemblyNode = (node) =>
@@ -40,6 +38,10 @@ function layoutGraph(nodes, edges) {
 }
 
 export function DependenciesTab({ reports }) {
+  const { scheme } = useTheme()
+  const t = scheme.tokens
+  // Highlight colour for the secondary (Shift-clicked) node in pair mode.
+  const SECONDARY = t['secondary']
   const asmdef = reports.asmdef.data
   const cycles = reports.cycles.data
   const [hideUnityBuiltins, setHideUnityBuiltins] = useState(true)
@@ -83,9 +85,9 @@ export function DependenciesTab({ reports }) {
         id: v.name,
         data: { label: v.name, inCycle, guid, raw: v },
         style: {
-          background: inCycle ? '#2a0d0d' : '#1c1c21',
-          border: `1px solid ${inCycle ? '#ff5757' : '#34343c'}`,
-          color: inCycle ? '#ff9b9b' : '#d4d1c4',
+          background: inCycle ? t['viz-node-cycle-bg'] : t['viz-node-bg'],
+          border: `1px solid ${inCycle ? t['danger'] : t['viz-node-border']}`,
+          color: inCycle ? t['viz-node-cycle-text'] : t['viz-node-text'],
           padding: '10px 12px',
           borderRadius: 4,
           fontSize: 11,
@@ -109,7 +111,7 @@ export function DependenciesTab({ reports }) {
           interactionWidth: 0,
           style: {
             pointerEvents: 'none',
-            stroke: inCycle ? '#ff5757' : '#34343c',
+            stroke: inCycle ? t['danger'] : t['viz-edge'],
             strokeWidth: inCycle ? 2 : 1
           }
         })
@@ -208,9 +210,9 @@ export function DependenciesTab({ reports }) {
         const childGap = 8
 
         const childNodeStyle = {
-          background: '#15151a',
-          border: '1px dashed #5a5a66',
-          color: '#8a8a96',
+          background: t['viz-external-bg'],
+          border: `1px dashed ${t['viz-external-border']}`,
+          color: t['viz-external-text'],
           padding: '10px 12px',
           borderRadius: 4,
           fontSize: 11,
@@ -266,9 +268,9 @@ export function DependenciesTab({ reports }) {
               id: `ext-parent::${root}`,
               data: { label: `▶ ${root}`, isExternalParent: true, root },
               style: {
-                background: '#1f1f28',
-                border: '1px solid #5a5a66',
-                color: '#b8b8c4',
+                background: t['viz-parent-bg'],
+                border: `1px solid ${t['viz-external-border']}`,
+                color: t['viz-parent-text'],
                 padding: '10px 12px',
                 borderRadius: 4,
                 fontSize: 11,
@@ -294,8 +296,8 @@ export function DependenciesTab({ reports }) {
             selectable: false,
             draggable: false,
             style: {
-              background: 'rgba(90, 90, 102, 0.08)',
-              border: '1px solid #3a3a44',
+              background: t['viz-group-bg'],
+              border: `1px solid ${t['viz-group-border']}`,
               borderRadius: 8,
               width: NODE_W + pad * 2,
               height: cH
@@ -310,9 +312,9 @@ export function DependenciesTab({ reports }) {
             parentId: groupId,
             extent: 'parent',
             style: {
-              background: '#1a1a22',
-              border: '1px solid #5a5a66',
-              color: '#b8b8c4',
+              background: t['viz-parent-header-bg'],
+              border: `1px solid ${t['viz-external-border']}`,
+              color: t['viz-parent-text'],
               padding: '10px 12px',
               borderRadius: 4,
               fontSize: 11,
@@ -366,7 +368,7 @@ export function DependenciesTab({ reports }) {
               target,
               animated: false,
               interactionWidth: 0,
-              style: { pointerEvents: 'none', stroke: '#3a3a44', strokeWidth: 1, strokeDasharray: '4 4' }
+              style: { pointerEvents: 'none', stroke: t['viz-edge'], strokeWidth: 1, strokeDasharray: '4 4' }
             })
           }
         }
@@ -379,7 +381,7 @@ export function DependenciesTab({ reports }) {
     }
 
     return { nodes: positionedAssemblyNodes, edges }
-  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots])
+  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots, scheme])
 
   const selectedId = selected?.id ?? null
   const isPairMode = !!(selected && secondary)
@@ -467,13 +469,13 @@ export function DependenciesTab({ reports }) {
         // is always pink — independent of which node was clicked first.
         if (pairSrcId) {
           if (n.id === pairSrcId)
-            return { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
+            return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['acid']}`, color: t['acid'] } }
           if (n.id === pairTgtId)
-            return { ...n, style: { ...n.style, background: '#2a0a1d', border: `2px solid ${SECONDARY}`, color: SECONDARY } }
+            return { ...n, style: { ...n.style, background: t['viz-secondary-select-bg'], border: `2px solid ${SECONDARY}`, color: SECONDARY } }
           return n
         }
         if (n.id === selectedId)
-          return { ...n, style: { ...n.style, background: '#1e2300', border: '2px solid #c8f232', color: '#c8f232' } }
+          return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['acid']}`, color: t['acid'] } }
         return n
       })
     : []
@@ -485,13 +487,13 @@ export function DependenciesTab({ reports }) {
             .filter(e => (e.source === pairSrcId && e.target === pairTgtId) || e.source === pairTgtId)
             .map(e => {
               if (e.source === pairSrcId)
-                return { ...e, animated: true, style: { ...e.style, stroke: '#ffffff', strokeWidth: 2.5 } }
+                return { ...e, animated: true, style: { ...e.style, stroke: t['viz-edge-highlight'], strokeWidth: 2.5 } }
               // e.source === pairTgtId → B's transitive dependencies
               return { ...e, animated: true, style: { ...e.style, stroke: SECONDARY, strokeWidth: 2 } }
             })
         : graph.edges.map(e =>
             selectedId && (e.source === selectedId || e.target === selectedId)
-              ? { ...e, animated: true, style: { ...e.style, stroke: '#c8f232', strokeWidth: 2 } }
+              ? { ...e, animated: true, style: { ...e.style, stroke: t['acid'], strokeWidth: 2 } }
               : e
           ))
     : []
@@ -506,7 +508,7 @@ export function DependenciesTab({ reports }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="h-full flex flex-col gap-5 min-h-0">
       <div className="flex items-center gap-6">
         <Filter label="Hide Unity built-ins" checked={hideUnityBuiltins} onChange={setHideUnityBuiltins} />
         <Filter label="Only cycle nodes" checked={onlyCycles} onChange={setOnlyCycles} />
@@ -517,15 +519,15 @@ export function DependenciesTab({ reports }) {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1 h-[calc(100vh-280px)] min-h-[500px] border border-ink-700 rounded bg-ink-900/40 overflow-hidden">
+      <div className="flex gap-4 flex-1 min-h-0">
+        <div className="flex-1 h-full min-h-0 border border-ink-700 rounded bg-ink-900/40 overflow-hidden">
           <ReactFlow
             nodes={displayNodes}
             edges={displayEdges}
             fitView
             minZoom={0.1}
             maxZoom={2}
-            colorMode="dark"
+            colorMode={scheme.colorScheme}
             selectionKeyCode={null}
             onNodeClick={(event, node) => {
               if (node.data?.isGroup) return
@@ -553,7 +555,7 @@ export function DependenciesTab({ reports }) {
             onPaneClick={() => { setSelected(null); setSecondary(null) }}
             proOptions={{ hideAttribution: false }}
           >
-            <Background color="#242429" gap={24} />
+            <Background color={t['viz-canvas']} gap={24} />
             <Controls showInteractive={false} />
           </ReactFlow>
         </div>
@@ -589,6 +591,8 @@ function Filter({ label, checked, onChange }) {
 }
 
 function Legend() {
+  const { scheme } = useTheme()
+  const t = scheme.tokens
   return (
     <div className="flex items-center gap-6 ijm-code text-[11px] text-ink-400">
       <div className="flex items-center gap-2">
@@ -604,7 +608,7 @@ function Legend() {
         <span className="inline-block w-6 h-0.5 bg-danger" /> cycle edge
       </div>
       <div className="flex items-center gap-2">
-        <span className="inline-block w-4 h-3 border border-dashed" style={{ borderColor: '#5a5a66', background: '#15151a' }} /> external dependency
+        <span className="inline-block w-4 h-3 border border-dashed" style={{ borderColor: t['viz-external-border'], background: t['viz-external-bg'] }} /> external dependency
       </div>
     </div>
   )
@@ -612,7 +616,7 @@ function Legend() {
 
 function EmptyInspector() {
   return (
-    <aside className="hidden min-[1400px]:flex w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] items-center justify-center">
+    <aside className="hidden min-[1400px]:flex w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-full min-h-0 items-center justify-center">
       <div className="text-center">
         <div className="ijm-eyebrow text-ink-400 mb-2">Inspector</div>
         <div className="text-xs text-ink-500">Select a node to view details</div>
@@ -625,11 +629,11 @@ function PairInspector({ data, onClose, onClear }) {
   const { srcName, tgtName, scripts, aName, bName } = data
   const hasDeps = scripts.length > 0
   return (
-    <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
+    <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-full min-h-0 overflow-y-auto">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="ijm-code text-sm break-all">
-            <span className="text-accent-acid">{srcName}</span>
+            <span className="text-acid">{srcName}</span>
           </div>
           <div className="ijm-code text-sm break-all">
             <span className="text-ink-500"> → </span>
@@ -689,7 +693,7 @@ function NodeInspector({ node, onClose }) {
   if (node.data?.isExternal) {
     const raw = node.data.raw
     return (
-      <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
+      <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-full min-h-0 overflow-y-auto">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <div className="ijm-eyebrow text-ink-400 mb-1">External Dependency</div>
@@ -734,7 +738,7 @@ function NodeInspector({ node, onClose }) {
 
   const raw = node.data?.raw ?? {}
   return (
-    <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto">
+    <aside className="w-80 border border-ink-700 rounded bg-ink-900/40 p-5 h-full min-h-0 overflow-y-auto">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="ijm-eyebrow text-ink-400 mb-1">

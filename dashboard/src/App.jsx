@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useReports } from './hooks/useReports.js'
+import { SchemeSelector } from './components/SchemeSelector.jsx'
 import { TabNav } from './components/TabNav.jsx'
 import { OverviewTab } from './components/tabs/OverviewTab.jsx'
 import { DependenciesTab } from './components/tabs/DependenciesTab.jsx'
@@ -41,7 +42,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col relative z-10">
+    <div className="h-screen flex flex-col overflow-hidden relative z-10">
       <header className="border-b border-ink-700 bg-ink-900/60 backdrop-blur sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-8 py-5 flex items-center justify-between">
           <div className="flex items-baseline gap-5">
@@ -58,6 +59,7 @@ export default function App() {
                 updated <span className="text-ink-200">{formatTime(loadedAt)}</span>
               </div>
             )}
+            <SchemeSelector />
             <button
               onClick={handleRefresh}
               disabled={runStatus !== 'idle'}
@@ -71,7 +73,7 @@ export default function App() {
         <TabNav tabs={TABS} active={active} onChange={setActive} />
       </header>
 
-      <main className={`flex-1 w-full mx-auto px-8 py-10 ${active === 'dependencies' ? '' : 'max-w-[1600px]'}`}>
+      <main className={`flex-1 min-h-0 overflow-y-auto w-full mx-auto px-8 py-10 ${active === 'dependencies' ? '' : 'max-w-[1600px]'}`}>
         {active === 'overview' && <OverviewTab reports={reports} />}
         {active === 'dependencies' && <DependenciesTab reports={reports} />}
         {active === 'cycles' && <CyclesTab reports={reports} />}

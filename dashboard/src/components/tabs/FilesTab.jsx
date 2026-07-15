@@ -11,8 +11,11 @@ import {
 import { EmptyState, SectionHeader } from '../shared/EmptyState.jsx'
 import { StatCard } from '../StatCard.jsx'
 import { formatNumber } from '../../utils/format.js'
+import { useTheme } from '../../theme/useTheme.js'
 
 export function FilesTab({ reports }) {
+  const { scheme } = useTheme()
+  const t = scheme.tokens
   const files = reports.files.data
   const [selected, setSelected] = useState(null)
 
@@ -66,9 +69,9 @@ export function FilesTab({ reports }) {
             <Treemap
               data={treemapData}
               dataKey="size"
-              stroke="#0a0a0b"
+              stroke={t['chart-stroke']}
               isAnimationActive={false}
-              content={<TreemapNode maxSize={maxSize} onClick={setSelected} selected={selected} />}
+              content={<TreemapNode maxSize={maxSize} onClick={setSelected} selected={selected} colors={t} />}
             >
               <Tooltip content={<TooltipBox />} />
             </Treemap>
@@ -119,18 +122,18 @@ export function FilesTab({ reports }) {
             >
               <XAxis
                 type="number"
-                stroke="#8a8880"
+                stroke={t['chart-axis']}
                 tick={{ fontSize: 11, fontFamily: 'JetBrains Mono' }}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#8a8880"
+                stroke={t['chart-axis']}
                 tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }}
                 width={220}
               />
-              <Tooltip content={<TooltipBox />} cursor={{ fill: '#1c1c21' }} />
-              <Bar dataKey="size" fill="#d4ff3a" radius={[0, 2, 2, 0]} />
+              <Tooltip content={<TooltipBox />} cursor={{ fill: t['chart-cursor'] }} />
+              <Bar dataKey="size" fill={t['chart-primary']} radius={[0, 2, 2, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -140,7 +143,7 @@ export function FilesTab({ reports }) {
 }
 
 function TreemapNode(props) {
-  const { depth, x, y, width, height, name, size, maxSize, onClick, selected } = props
+  const { depth, x, y, width, height, name, size, maxSize, onClick, selected, colors } = props
   if (depth !== 1) return null
 
   const intensity = Math.max(0.15, Math.min(0.85, size / maxSize))
@@ -157,9 +160,9 @@ function TreemapNode(props) {
         width={width}
         height={height}
         style={{
-          fill: '#d4ff3a',
+          fill: colors['chart-primary'],
           fillOpacity: intensity,
-          stroke: isSelected ? '#ffffff' : '#0a0a0b',
+          stroke: isSelected ? colors['chart-select-stroke'] : colors['chart-stroke'],
           strokeWidth: isSelected ? 2 : 1
         }}
       />
@@ -167,7 +170,7 @@ function TreemapNode(props) {
         <text
           x={x + 10}
           y={y + 20}
-          fill="#0a0a0b"
+          fill={colors['chart-label-text']}
           fontSize={11}
           fontFamily="JetBrains Mono"
           fontWeight={500}
@@ -179,7 +182,7 @@ function TreemapNode(props) {
         <text
           x={x + 10}
           y={y + 36}
-          fill="#0a0a0b"
+          fill={colors['chart-label-text']}
           fontSize={10}
           fontFamily="JetBrains Mono"
           opacity={0.7}

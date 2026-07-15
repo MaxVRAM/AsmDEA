@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "default": "github-dark",
+  "schemes": {
+    "github-dark": {
+      "label": "GitHub Dark",
+      "colorScheme": "dark",
+      "tokens": {
+        "ink-950": "#010409",
+        "ink-900": "#0d1117",
+        "ink-800": "#161b22",
+        "ink-700": "#21262d",
+        "ink-600": "#30363d",
+        "ink-500": "#484f58",
+        "ink-400": "#6e7681",
+        "ink-300": "#8b949e",
+        "ink-200": "#b1bac4",
+        "ink-100": "#e6edf3",
+
+        "acid": "#2f81f7",
+        "danger": "#f85149",
+        "warning": "#d29922",
+        "success": "#3fb950",
+        "secondary": "#db61a2",
+
+        "viz-canvas": "#21262d",
+        "viz-node-bg": "#161b22",
+        "viz-node-border": "#30363d",
+        "viz-node-text": "#b1bac4",
+        "viz-node-cycle-bg": "#2d1214",
+        "viz-node-cycle-text": "#ffa198",
+        "viz-external-bg": "#0d1117",
+        "viz-external-border": "#484f58",
+        "viz-external-text": "#6e7681",
+        "viz-group-bg": "rgba(110, 118, 129, 0.08)",
+        "viz-group-border": "#30363d",
+        "viz-parent-bg": "#161b22",
+        "viz-parent-header-bg": "#1c2128",
+        "viz-parent-text": "#b1bac4",
+        "viz-edge": "#30363d",
+        "viz-select-bg": "#0d2847",
+        "viz-secondary-select-bg": "#2d1424",
+        "viz-edge-highlight": "#e6edf3",
+
+        "chart-primary": "#2f81f7",
+        "chart-stroke": "#0d1117",
+        "chart-axis": "#6e7681",
+        "chart-cursor": "#21262d",
+        "chart-label-text": "#e6edf3",
+        "chart-select-stroke": "#e6edf3"
+      }
+    },
+    "github-light": {
+      "label": "GitHub Light",
+      "colorScheme": "light",
+      "tokens": {
+        "ink-950": "#ffffff",
+        "ink-900": "#f6f8fa",
+        "ink-800": "#eaeef2",
+        "ink-700": "#d0d7de",
+        "ink-600": "#afb8c1",
+        "ink-500": "#8c959f",
+        "ink-400": "#6e7781",
+        "ink-300": "#57606a",
+        "ink-200": "#424a53",
+        "ink-100": "#1f2328",
+
+        "acid": "#0969da",
+        "danger": "#cf222e",
+        "warning": "#9a6700",
+        "success": "#1a7f37",
+        "secondary": "#bf3989",
+
+        "viz-canvas": "#d0d7de",
+        "viz-node-bg": "#ffffff",
+        "viz-node-border": "#d0d7de",
+        "viz-node-text": "#1f2328",
+        "viz-node-cycle-bg": "#ffebe9",
+        "viz-node-cycle-text": "#cf222e",
+        "viz-external-bg": "#f6f8fa",
+        "viz-external-border": "#afb8c1",
+        "viz-external-text": "#6e7781",
+        "viz-group-bg": "rgba(110, 118, 129, 0.08)",
+        "viz-group-border": "#d0d7de",
+        "viz-parent-bg": "#eaeef2",
+        "viz-parent-header-bg": "#eaeef2",
+        "viz-parent-text": "#1f2328",
+        "viz-edge": "#afb8c1",
+        "viz-select-bg": "#ddf4ff",
+        "viz-secondary-select-bg": "#ffeff7",
+        "viz-edge-highlight": "#1f2328",
+
+        "chart-primary": "#0969da",
+        "chart-stroke": "#ffffff",
+        "chart-axis": "#6e7781",
+        "chart-cursor": "#eaeef2",
+        "chart-label-text": "#ffffff",
+        "chart-select-stroke": "#1f2328"
+      }
+    }
+  }
+}

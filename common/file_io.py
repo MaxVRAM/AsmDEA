@@ -41,7 +41,8 @@ def load_asmdef_dict(filepath: Path | str) -> dict[str, Any]:
     """
     path = Path(filepath)
     try:
-        with open(path, encoding="utf-8") as f:
+        # utf-8-sig transparently strips a leading BOM if one is present.
+        with open(path, encoding="utf-8-sig") as f:
             return cast(dict[str, Any], json.load(f))
     except FileNotFoundError:
         logger.error("Dictionary file not found: %s", path)

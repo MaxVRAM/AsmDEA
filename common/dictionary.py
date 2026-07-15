@@ -17,7 +17,8 @@ def extract_guid_from_meta(meta_path: Path) -> str | None:
         GUID string prefixed with "GUID:" or None if extraction fails
     """
     try:
-        with open(meta_path, encoding="utf-8") as f:
+        # utf-8-sig transparently strips a leading BOM if Unity/Windows wrote one.
+        with open(meta_path, encoding="utf-8-sig") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("guid:"):
@@ -41,7 +42,9 @@ def load_asmdef_json(asmdef_path: Path) -> dict[str, Any] | None:
         Dictionary with assembly definition data or None if loading fails
     """
     try:
-        with open(asmdef_path, encoding="utf-8") as f:
+        # utf-8-sig transparently strips a leading BOM if Unity/Windows wrote one;
+        # plain utf-8 would leave it in place and json.load would reject the file.
+        with open(asmdef_path, encoding="utf-8-sig") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         print(f"Warning: Invalid JSON in '{asmdef_path}': {e}", file=sys.stderr)

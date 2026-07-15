@@ -107,7 +107,7 @@ export function PrefabTab({ reports }) {
             'border-2 border-dashed rounded p-10 text-center cursor-pointer transition',
             'bg-ink-900/40',
             dragOver
-              ? 'border-acid bg-acid/5'
+              ? 'border-primary bg-primary/5'
               : 'border-ink-700 hover:border-ink-500'
           ].join(' ')}
         >

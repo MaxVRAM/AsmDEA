@@ -17,7 +17,7 @@ const BOOTSTRAP_SCHEME = {
     'ink-700': '#21262d', 'ink-600': '#30363d', 'ink-500': '#484f58',
     'ink-400': '#6e7681', 'ink-300': '#8b949e', 'ink-200': '#b1bac4',
     'ink-100': '#e6edf3',
-    'acid': '#2f81f7', 'danger': '#f85149', 'warning': '#d29922',
+    'primary': '#2f81f7', 'danger': '#f85149', 'warning': '#d29922',
     'success': '#3fb950', 'secondary': '#db61a2',
     'viz-canvas': '#21262d', 'viz-node-bg': '#161b22', 'viz-node-border': '#30363d',
     'viz-node-text': '#b1bac4', 'viz-node-cycle-bg': '#2d1214', 'viz-node-cycle-text': '#ffa198',

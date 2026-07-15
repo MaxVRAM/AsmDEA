@@ -29,7 +29,7 @@ export default {
           200: withVar('ink-200'),
           100: withVar('ink-100')
         },
-        acid:      withVar('acid'),
+        primary:      withVar('primary'),
         danger:    withVar('danger'),
         warning:   withVar('warning'),
         success:   withVar('success'),

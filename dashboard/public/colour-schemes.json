@@ -16,13 +16,11 @@
         "ink-300": "#8b949e",
         "ink-200": "#b1bac4",
         "ink-100": "#e6edf3",
-
-        "acid": "#2f81f7",
+        "primary": "#2f81f7",
         "danger": "#f85149",
         "warning": "#d29922",
         "success": "#3fb950",
         "secondary": "#db61a2",
-
         "viz-canvas": "#21262d",
         "viz-node-bg": "#161b22",
         "viz-node-border": "#30363d",
@@ -41,7 +39,6 @@
         "viz-select-bg": "#0d2847",
         "viz-secondary-select-bg": "#2d1424",
         "viz-edge-highlight": "#e6edf3",
-
         "chart-primary": "#2f81f7",
         "chart-stroke": "#0d1117",
         "chart-axis": "#6e7681",
@@ -64,13 +61,11 @@
         "ink-300": "#57606a",
         "ink-200": "#424a53",
         "ink-100": "#1f2328",
-
-        "acid": "#0969da",
+        "primary": "#0969da",
         "danger": "#cf222e",
         "warning": "#9a6700",
         "success": "#1a7f37",
         "secondary": "#bf3989",
-
         "viz-canvas": "#d0d7de",
         "viz-node-bg": "#ffffff",
         "viz-node-border": "#d0d7de",
@@ -89,7 +84,6 @@
         "viz-select-bg": "#ddf4ff",
         "viz-secondary-select-bg": "#ffeff7",
         "viz-edge-highlight": "#1f2328",
-
         "chart-primary": "#0969da",
         "chart-stroke": "#ffffff",
         "chart-axis": "#6e7781",

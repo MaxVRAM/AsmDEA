@@ -12,7 +12,7 @@ export function SchemeSelector() {
         aria-label="Colour scheme"
         value={schemeId}
         onChange={e => setSchemeId(e.target.value)}
-        className="appearance-none bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded pl-8 pr-8 py-2 text-xs font-medium tracking-wide font-mono uppercase text-ink-200 transition cursor-pointer focus:outline-none focus:border-acid"
+        className="appearance-none bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded pl-8 pr-8 py-2 text-xs font-medium tracking-wide font-mono uppercase text-ink-200 transition cursor-pointer focus:outline-none focus:border-primary"
       >
         {options.map(s => (
           <option key={s.id} value={s.id}>{s.label}</option>

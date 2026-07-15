@@ -205,7 +205,7 @@ function TooltipBox({ active, payload }) {
   return (
     <div className="ijm-code bg-ink-900 border border-ink-600 px-3 py-2 rounded text-xs shadow-lg">
       <div className="text-ink-100">{p.name}</div>
-      <div className="text-acid mt-0.5">{p.size} files</div>
+      <div className="text-primary mt-0.5">{p.size} files</div>
     </div>
   )
 }

@@ -465,17 +465,17 @@ export function DependenciesTab({ reports }) {
 
   const displayNodes = graph
     ? graph.nodes.map(n => {
-        // Pair mode: the source (A) is always acid-green and the target/dependency (B)
+        // Pair mode: the source (A) is always primary-green and the target/dependency (B)
         // is always pink — independent of which node was clicked first.
         if (pairSrcId) {
           if (n.id === pairSrcId)
-            return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['acid']}`, color: t['acid'] } }
+            return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['primary']}`, color: t['primary'] } }
           if (n.id === pairTgtId)
             return { ...n, style: { ...n.style, background: t['viz-secondary-select-bg'], border: `2px solid ${SECONDARY}`, color: SECONDARY } }
           return n
         }
         if (n.id === selectedId)
-          return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['acid']}`, color: t['acid'] } }
+          return { ...n, style: { ...n.style, background: t['viz-select-bg'], border: `2px solid ${t['primary']}`, color: t['primary'] } }
         return n
       })
     : []
@@ -493,7 +493,7 @@ export function DependenciesTab({ reports }) {
             })
         : graph.edges.map(e =>
             selectedId && (e.source === selectedId || e.target === selectedId)
-              ? { ...e, animated: true, style: { ...e.style, stroke: t['acid'], strokeWidth: 2 } }
+              ? { ...e, animated: true, style: { ...e.style, stroke: t['primary'], strokeWidth: 2 } }
               : e
           ))
     : []
@@ -583,7 +583,7 @@ function Filter({ label, checked, onChange }) {
         type="checkbox"
         checked={checked}
         onChange={e => onChange(e.target.checked)}
-        className="accent-acid w-4 h-4"
+        className="accent-primary w-4 h-4"
       />
       <span className="text-ink-200">{label}</span>
     </label>
@@ -633,7 +633,7 @@ function PairInspector({ data, onClose, onClear }) {
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="ijm-code text-sm break-all">
-            <span className="text-acid">{srcName}</span>
+            <span className="text-primary">{srcName}</span>
           </div>
           <div className="ijm-code text-sm break-all">
             <span className="text-ink-500"> → </span>

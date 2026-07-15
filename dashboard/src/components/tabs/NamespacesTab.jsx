@@ -215,7 +215,7 @@ export function NamespacesTab({ reports }) {
             placeholder="filter by name or namespace…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-acid/60"
+            className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-primary/60"
           />
         </div>
 
@@ -294,7 +294,7 @@ export function NamespacesTab({ reports }) {
                 placeholder="filter by namespace or assembly…"
                 value={nsSearch}
                 onChange={e => setNsSearch(e.target.value)}
-                className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-acid/60"
+                className="ijm-code w-full max-w-sm px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm placeholder-ink-500 focus:outline-none focus:border-primary/60"
               />
             </div>
 
@@ -365,7 +365,7 @@ function SortableTh({ k, sort, onSort, align = 'left', children }) {
       onClick={() => onSort(k)}
       className={`px-4 py-3 cursor-pointer select-none hover:text-ink-100 transition ${
         align === 'right' ? 'text-right' : 'text-left'
-      } ${active ? 'text-acid' : ''}`}
+      } ${active ? 'text-primary' : ''}`}
     >
       {children}
       {active && <span className="ml-1">{sort.dir === 'asc' ? '↑' : '↓'}</span>}

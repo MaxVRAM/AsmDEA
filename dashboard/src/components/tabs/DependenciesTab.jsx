@@ -626,6 +626,8 @@ function EmptyInspector() {
 }
 
 function PairInspector({ data, onClose, onClear }) {
+  const { scheme } = useTheme()
+  const SECONDARY = scheme.tokens['secondary']
   const { srcName, tgtName, scripts, aName, bName } = data
   const hasDeps = scripts.length > 0
   return (

@@ -40,6 +40,9 @@ export default defineConfig(({ mode }) => {
         }
       }
     ],
-    server: { port: 5173, open: true }
+    server: { port: 5173, open: true },
+    // Pre-bundle elkjs so the layout engine's dynamic import resolves cleanly on
+    // first use, instead of racing Vite's on-demand dep optimization.
+    optimizeDeps: { include: ['elkjs/lib/elk.bundled.js'] }
   }
 })

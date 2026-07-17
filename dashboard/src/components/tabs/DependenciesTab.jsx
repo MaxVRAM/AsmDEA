@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react'
-import { ReactFlow, Background, Controls, Position } from '@xyflow/react'
+import { useEffect, useMemo, useState } from 'react'
+import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import dagre from 'dagre'
-import { buildGuidLookup } from '../../utils/format.js'
 import { EmptyState } from '../shared/EmptyState.jsx'
 import { useTheme } from '../../theme/useTheme.js'
-
-const NODE_W = 190
-const NODE_H = 44
+import { LayoutToolbar } from '../LayoutToolbar.jsx'
+import { buildAssemblyGraph } from '../../utils/layout/buildGraphModel.js'
+import { buildExternalLayer } from '../../utils/layout/buildExternalLayer.js'
+import { runLayout, loadLayout, saveLayout, LAYOUT_PRESETS } from '../../utils/layout/index.js'
 
 // Assembly nodes are the only ones eligible as the *source* in pair comparison.
 const isAssemblyNode = (node) =>
@@ -17,24 +16,35 @@ const isAssemblyNode = (node) =>
 // External leaf nodes (ext::${ns}) are eligible as the *target* in pair comparison.
 const isExternalNode = (node) => !!node && node.data?.isExternal === true
 
-function layoutGraph(nodes, edges) {
-  const g = new dagre.graphlib.Graph()
-  g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({ rankdir: 'LR', nodesep: 24, ranksep: 80, marginx: 20, marginy: 20 })
+// The ReactFlow canvas. Lives inside a ReactFlowProvider so it can call fitView
+// imperatively — re-framing the graph whenever the layout changes (tracked via
+// `layoutTick`) rather than only on first mount.
+function GraphCanvas({ nodes, edges, colorMode, tokens, layoutTick, onNodeClick, onPaneClick }) {
+  const { fitView } = useReactFlow()
+  useEffect(() => {
+    if (!nodes.length) return
+    // Fit on the next frame, once the new nodes are committed to the store.
+    const id = requestAnimationFrame(() => fitView({ duration: 300, padding: 0.12 }))
+    return () => cancelAnimationFrame(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutTick])
 
-  nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }))
-  edges.forEach(e => g.setEdge(e.source, e.target))
-  dagre.layout(g)
-
-  return nodes.map(n => {
-    const p = g.node(n.id)
-    return {
-      ...n,
-      position: { x: p.x - NODE_W / 2, y: p.y - NODE_H / 2 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left
-    }
-  })
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      minZoom={0.1}
+      maxZoom={2}
+      colorMode={colorMode}
+      selectionKeyCode={null}
+      onNodeClick={onNodeClick}
+      onPaneClick={onPaneClick}
+      proOptions={{ hideAttribution: false }}
+    >
+      <Background color={tokens['viz-canvas']} gap={24} />
+      <Controls showInteractive={false} />
+    </ReactFlow>
+  )
 }
 
 export function DependenciesTab({ reports }) {
@@ -60,328 +70,68 @@ export function DependenciesTab({ reports }) {
 
   const scripts = reports.scripts?.data?.scripts
 
-  const graph = useMemo(() => {
+  const [layout, setLayout] = useState(loadLayout)
+  useEffect(() => { saveLayout(layout) }, [layout])
+  const patchLayout = (patch) => setLayout(prev => ({ ...prev, ...patch }))
+  const edgeType = (LAYOUT_PRESETS[layout.preset] ?? LAYOUT_PRESETS.layered).edgeType
+
+  // Unpositioned assembly graph — cheap and synchronous. Positions come later
+  // from the (async) layout engine.
+  const graphModel = useMemo(() => {
     if (!asmdef) return null
-    const guidToName = buildGuidLookup(asmdef)
-    const cycleNodeSet = new Set(cycles?.affectedNodes ?? [])
+    return buildAssemblyGraph(asmdef, cycles, { hideUnityBuiltins, onlyCycles, hideOrphanNodes }, t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scheme])
 
-    let entries = Object.entries(asmdef).filter(([k]) => k !== '_metadata')
+  // Run ELK whenever the model or the layout options change. Guard against stale
+  // async results with a cancel flag; bump `layoutTick` on success so the canvas
+  // re-fits. Externals are placed separately (below), so only assembly nodes here.
+  const [positioned, setPositioned] = useState(null)
+  const [layoutTick, setLayoutTick] = useState(0)
+  const [pending, setPending] = useState(false)
 
-    if (hideUnityBuiltins) {
-      entries = entries.filter(([, v]) => {
-        const n = v.name ?? ''
-        return !n.startsWith('Unity.') && !n.startsWith('UnityEngine') && !n.startsWith('UnityEditor')
+  useEffect(() => {
+    if (!graphModel) { setPositioned(null); return }
+    let cancelled = false
+    setPending(true)
+    runLayout(graphModel.nodes, graphModel.edges, layout)
+      .then(nodes => {
+        if (cancelled) return
+        setPositioned(nodes)
+        setLayoutTick(v => v + 1)
+        setPending(false)
       })
-    }
-    if (onlyCycles) {
-      entries = entries.filter(([, v]) => cycleNodeSet.has(v.name))
-    }
+      .catch(err => {
+        if (cancelled) return
+        console.error('Layout failed', err)
+        setPositioned(graphModel.nodes.map(n => ({ ...n, position: { x: 0, y: 0 } })))
+        setPending(false)
+      })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphModel, layout.preset, layout.direction, layout.spacing])
 
-    const includedNames = new Set(entries.map(([, v]) => v.name))
-
-    const nodes = entries.map(([guid, v]) => {
-      const inCycle = cycleNodeSet.has(v.name)
-      return {
-        id: v.name,
-        data: { label: v.name, inCycle, guid, raw: v },
-        style: {
-          background: inCycle ? t['viz-node-cycle-bg'] : t['viz-node-bg'],
-          border: `1px solid ${inCycle ? t['danger'] : t['viz-node-border']}`,
-          color: inCycle ? t['viz-node-cycle-text'] : t['viz-node-text'],
-          padding: '10px 12px',
-          borderRadius: 4,
-          fontSize: 11,
-          fontFamily: 'JetBrains Mono, monospace',
-          width: NODE_W
-        }
-      }
+  // Compose the final graph: positioned assemblies + the external-dependency
+  // layer. Expand/collapse only re-runs this memo (not the engine) since assembly
+  // positions are unchanged.
+  const graph = useMemo(() => {
+    if (!positioned) return null
+    if (hideExternal || !scripts) return { nodes: positioned, edges: graphModel.edges }
+    const ext = buildExternalLayer({
+      positionedAssemblyNodes: positioned,
+      scripts,
+      includedNames: graphModel.includedNames,
+      guidToName: graphModel.guidToName,
+      t,
+      isExpanded,
+      direction: layout.direction
     })
-
-    const edges = []
-    for (const [, v] of entries) {
-      for (const ref of v.references ?? []) {
-        const refName = ref.startsWith('GUID:') ? guidToName[ref] : ref
-        if (!refName || !includedNames.has(refName)) continue
-        const inCycle = cycleNodeSet.has(v.name) && cycleNodeSet.has(refName)
-        edges.push({
-          id: `${v.name}->${refName}`,
-          source: v.name,
-          target: refName,
-          animated: inCycle,
-          interactionWidth: 0,
-          style: {
-            pointerEvents: 'none',
-            stroke: inCycle ? t['danger'] : t['viz-edge'],
-            strokeWidth: inCycle ? 2 : 1
-          }
-        })
-      }
+    return {
+      nodes: [...positioned, ...ext.nodes],
+      edges: [...graphModel.edges, ...ext.edges]
     }
-
-    let visibleNodes = nodes
-    if (hideOrphanNodes) {
-      const connected = new Set()
-      edges.forEach(e => { connected.add(e.source); connected.add(e.target) })
-      visibleNodes = nodes.filter(n => connected.has(n.id))
-    }
-
-    const positionedAssemblyNodes = layoutGraph(visibleNodes, edges)
-
-    if (!hideExternal && scripts) {
-      const guidToExternals = new Map()
-      for (const entry of Object.values(scripts)) {
-        const externalImports = entry.externalImports
-        if (!externalImports?.length || !entry.assembly) continue
-        const guid = entry.assembly
-        if (!guidToExternals.has(guid)) guidToExternals.set(guid, new Set())
-        for (const ns of externalImports) {
-          guidToExternals.get(guid).add(ns)
-        }
-      }
-
-      const nsToAssemblyNames = new Map()
-      for (const [guid, nsSet] of guidToExternals) {
-        const assemblyName = guidToName[guid]
-        if (!assemblyName || !includedNames.has(assemblyName)) continue
-        for (const ns of nsSet) {
-          if (!nsToAssemblyNames.has(ns)) nsToAssemblyNames.set(ns, new Set())
-          nsToAssemblyNames.get(ns).add(assemblyName)
-        }
-      }
-
-      // ns -> (assemblyName -> [{ name, path }]): the individual scripts that
-      // import each external namespace, grouped by their owning assembly. Feeds
-      // the per-assembly script listing in the inspector's "Imported by" section.
-      const nsToAssemblyScripts = new Map()
-      for (const entry of Object.values(scripts)) {
-        const externalImports = entry.externalImports
-        if (!externalImports?.length || !entry.assembly) continue
-        const assemblyName = guidToName[entry.assembly]
-        if (!assemblyName || !includedNames.has(assemblyName)) continue
-        for (const ns of externalImports) {
-          if (!nsToAssemblyScripts.has(ns)) nsToAssemblyScripts.set(ns, new Map())
-          const byAssembly = nsToAssemblyScripts.get(ns)
-          if (!byAssembly.has(assemblyName)) byAssembly.set(assemblyName, [])
-          byAssembly.get(assemblyName).push({ name: entry.name, path: entry.relativePath })
-        }
-      }
-
-      // Build the inspector payload for an external namespace node: the sorted
-      // list of importing assemblies, plus the scripts within each.
-      const makeExternalRaw = (ns) => {
-        const byAssembly = nsToAssemblyScripts.get(ns) ?? new Map()
-        const scriptsByAssembly = {}
-        for (const [assemblyName, list] of byAssembly) {
-          scriptsByAssembly[assemblyName] = [...list].sort((a, b) => a.name.localeCompare(b.name))
-        }
-        return {
-          namespace: ns,
-          importingAssemblies: [...nsToAssemblyNames.get(ns)].sort(),
-          scriptsByAssembly
-        }
-      }
-
-      if (nsToAssemblyNames.size > 0) {
-        const maxX = Math.max(...positionedAssemblyNodes.map(n => n.position.x)) + NODE_W + 120
-
-        // Group namespaces by their root segment (first dot-segment)
-        const rootGroups = new Map() // root -> sorted array of full namespaces
-        for (const ns of nsToAssemblyNames.keys()) {
-          const root = ns.split('.')[0]
-          if (!rootGroups.has(root)) rootGroups.set(root, [])
-          rootGroups.get(root).push(ns)
-        }
-        // Sort roots alphabetically; sort children within each group alphabetically
-        const sortedRoots = [...rootGroups.keys()].sort()
-        for (const root of sortedRoots) {
-          rootGroups.get(root).sort()
-        }
-
-        // A root group is foldable only if it has children beyond the root itself.
-        // When the only member IS the root (e.g. `Cinemachine` with no `Cinemachine.X`),
-        // render a single dashed leaf instead of a parent + child pair.
-        const isFoldable = (root) => {
-          const members = rootGroups.get(root)
-          return members.length > 1 || members[0] !== root
-        }
-
-        const gap = 16
-        const pad = 12
-        const childGap = 8
-
-        const childNodeStyle = {
-          background: t['viz-external-bg'],
-          border: `1px dashed ${t['viz-external-border']}`,
-          color: t['viz-external-text'],
-          padding: '10px 12px',
-          borderRadius: 4,
-          fontSize: 11,
-          fontFamily: 'JetBrains Mono, monospace',
-          width: NODE_W
-        }
-
-        // Height of an expanded group container: top/bottom padding, the header
-        // row, then one row per child, all separated by childGap.
-        const containerHeight = (childCount) =>
-          pad * 2 + NODE_H * (childCount + 1) + childGap * childCount
-
-        const blockHeight = (root) => {
-          if (!isFoldable(root) || !isExpanded(root)) return NODE_H
-          return containerHeight(rootGroups.get(root).length)
-        }
-
-        const minAssemblyY = Math.min(...positionedAssemblyNodes.map(n => n.position.y))
-        const maxAssemblyY = Math.max(...positionedAssemblyNodes.map(n => n.position.y))
-        const projectCenterY = (minAssemblyY + maxAssemblyY + NODE_H) / 2
-        const totalExternalHeight =
-          sortedRoots.reduce((sum, root) => sum + blockHeight(root), 0) +
-          gap * Math.max(0, sortedRoots.length - 1)
-        const topY = projectCenterY - totalExternalHeight / 2
-
-        const externalNodes = []
-        let yCursor = topY
-
-        for (const root of sortedRoots) {
-          const children = rootGroups.get(root)
-
-          if (!isFoldable(root)) {
-            const ns = children[0]
-            externalNodes.push({
-              id: `ext::${ns}`,
-              data: {
-                label: ns,
-                isExternal: true,
-                raw: makeExternalRaw(ns)
-              },
-              style: childNodeStyle,
-              position: { x: maxX, y: yCursor },
-              sourcePosition: Position.Right,
-              targetPosition: Position.Left
-            })
-            yCursor += NODE_H + gap
-            continue
-          }
-
-          if (!isExpanded(root)) {
-            // Collapsed: standalone toggle node
-            externalNodes.push({
-              id: `ext-parent::${root}`,
-              data: { label: `▶ ${root}`, isExternalParent: true, root },
-              style: {
-                background: t['viz-parent-bg'],
-                border: `1px solid ${t['viz-external-border']}`,
-                color: t['viz-parent-text'],
-                padding: '10px 12px',
-                borderRadius: 4,
-                fontSize: 11,
-                fontFamily: 'JetBrains Mono, monospace',
-                width: NODE_W,
-                cursor: 'pointer'
-              },
-              position: { x: maxX, y: yCursor },
-              sourcePosition: Position.Right,
-              targetPosition: Position.Left
-            })
-            yCursor += NODE_H + gap
-            continue
-          }
-
-          // Expanded: header + children share one container background.
-          const cH = containerHeight(children.length)
-          const groupId = `ext-group::${root}`
-          externalNodes.push({
-            id: groupId,
-            type: 'group',
-            data: { isGroup: true },
-            selectable: false,
-            draggable: false,
-            style: {
-              background: t['viz-group-bg'],
-              border: `1px solid ${t['viz-group-border']}`,
-              borderRadius: 8,
-              width: NODE_W + pad * 2,
-              height: cH
-            },
-            position: { x: maxX - pad, y: yCursor }
-          })
-
-          // Header toggle node, positioned relative to its group container.
-          externalNodes.push({
-            id: `ext-parent::${root}`,
-            data: { label: `▼ ${root}`, isExternalParent: true, root },
-            parentId: groupId,
-            extent: 'parent',
-            style: {
-              background: t['viz-parent-header-bg'],
-              border: `1px solid ${t['viz-external-border']}`,
-              color: t['viz-parent-text'],
-              padding: '10px 12px',
-              borderRadius: 4,
-              fontSize: 11,
-              fontFamily: 'JetBrains Mono, monospace',
-              width: NODE_W,
-              cursor: 'pointer'
-            },
-            position: { x: pad, y: pad },
-            sourcePosition: Position.Right,
-            targetPosition: Position.Left
-          })
-
-          children.forEach((ns, i) => {
-            externalNodes.push({
-              id: `ext::${ns}`,
-              data: {
-                label: ns,
-                isExternal: true,
-                raw: makeExternalRaw(ns)
-              },
-              parentId: groupId,
-              extent: 'parent',
-              style: childNodeStyle,
-              position: { x: pad, y: pad + (NODE_H + childGap) * (i + 1) },
-              sourcePosition: Position.Right,
-              targetPosition: Position.Left
-            })
-          })
-
-          yCursor += cH + gap
-        }
-
-        // Build external edges; deduplicate collapsed-group edges with a Set
-        const seenEdges = new Set()
-        const externalEdges = []
-        for (const [ns, assemblyNames] of nsToAssemblyNames) {
-          const root = ns.split('.')[0]
-          let target
-          if (!isFoldable(root)) {
-            target = `ext::${ns}`
-          } else {
-            target = isExpanded(root) ? `ext::${ns}` : `ext-parent::${root}`
-          }
-          for (const assemblyName of assemblyNames) {
-            const edgeKey = `${assemblyName}->${target}`
-            if (seenEdges.has(edgeKey)) continue
-            seenEdges.add(edgeKey)
-            externalEdges.push({
-              id: edgeKey,
-              source: assemblyName,
-              target,
-              animated: false,
-              interactionWidth: 0,
-              style: { pointerEvents: 'none', stroke: t['viz-edge'], strokeWidth: 1, strokeDasharray: '4 4' }
-            })
-          }
-        }
-
-        return {
-          nodes: [...positionedAssemblyNodes, ...externalNodes],
-          edges: [...edges, ...externalEdges]
-        }
-      }
-    }
-
-    return { nodes: positionedAssemblyNodes, edges }
-  }, [asmdef, cycles, hideUnityBuiltins, onlyCycles, hideOrphanNodes, scripts, hideExternal, expandedRoots, scheme])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positioned, graphModel, hideExternal, scripts, expandedRoots, layout.direction, scheme])
 
   const selectedId = selected?.id ?? null
   const isPairMode = !!(selected && secondary)
@@ -480,7 +230,7 @@ export function DependenciesTab({ reports }) {
       })
     : []
 
-  const displayEdges = graph
+  const displayEdges = (graph
     ? (pairSrcId
         // Pair mode: draw only the direct A→B link plus B's outgoing dependencies.
         ? graph.edges
@@ -497,6 +247,31 @@ export function DependenciesTab({ reports }) {
               : e
           ))
     : []
+  ).map(e => ({ ...e, type: edgeType }))
+
+  const handleNodeClick = (event, node) => {
+    if (node.data?.isGroup) return
+    if (node.data?.isExternalParent) {
+      toggleRoot(node.data.root)
+      return
+    }
+    // Shift+click enters A/B mode regardless of selection order.
+    // Normalize: assembly is always `selected`, external (if any) is `secondary`.
+    if (event.shiftKey && node.id !== selected?.id) {
+      if (isAssemblyNode(selected) && (isAssemblyNode(node) || isExternalNode(node))) {
+        setSecondary(node)
+        return
+      }
+      if (isExternalNode(selected) && isAssemblyNode(node)) {
+        setSelected(node)
+        setSecondary(selected)
+        return
+      }
+    }
+    // Any other click → normal (re)select; clears any pairing
+    setSelected(node)
+    setSecondary(null)
+  }
 
   if (!asmdef) {
     return (
@@ -507,57 +282,37 @@ export function DependenciesTab({ reports }) {
     )
   }
 
+  const nodeCount = graph?.nodes.length ?? graphModel?.nodes.length ?? 0
+  const edgeCount = graph?.edges.length ?? graphModel?.edges.length ?? 0
+
   return (
     <div className="h-full flex flex-col gap-5 min-h-0">
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-x-6 gap-y-3 flex-wrap">
         <Filter label="Hide Unity built-ins" checked={hideUnityBuiltins} onChange={setHideUnityBuiltins} />
         <Filter label="Only cycle nodes" checked={onlyCycles} onChange={setOnlyCycles} />
         <Filter label="Hide orphan nodes" checked={hideOrphanNodes} onChange={setHideOrphanNodes} />
         <Filter label="Hide external dependencies" checked={hideExternal} onChange={setHideExternal} />
-        <div className="ml-auto ijm-code text-xs text-ink-400">
-          {graph.nodes.length} nodes · {graph.edges.length} edges
+        <div className="ml-auto flex items-center gap-6">
+          <LayoutToolbar layout={layout} onChange={patchLayout} pending={pending} />
+          <div className="ijm-code text-xs text-ink-400 whitespace-nowrap">
+            {nodeCount} nodes · {edgeCount} edges
+          </div>
         </div>
       </div>
 
       <div className="flex gap-4 flex-1 min-h-0">
         <div className="flex-1 h-full min-h-0 border border-ink-700 rounded bg-ink-900/40 overflow-hidden">
-          <ReactFlow
-            nodes={displayNodes}
-            edges={displayEdges}
-            fitView
-            minZoom={0.1}
-            maxZoom={2}
-            colorMode={scheme.colorScheme}
-            selectionKeyCode={null}
-            onNodeClick={(event, node) => {
-              if (node.data?.isGroup) return
-              if (node.data?.isExternalParent) {
-                toggleRoot(node.data.root)
-                return
-              }
-              // Shift+click enters A/B mode regardless of selection order.
-              // Normalize: assembly is always `selected`, external (if any) is `secondary`.
-              if (event.shiftKey && node.id !== selected?.id) {
-                if (isAssemblyNode(selected) && (isAssemblyNode(node) || isExternalNode(node))) {
-                  setSecondary(node)
-                  return
-                }
-                if (isExternalNode(selected) && isAssemblyNode(node)) {
-                  setSelected(node)
-                  setSecondary(selected)
-                  return
-                }
-              }
-              // Any other click → normal (re)select; clears any pairing
-              setSelected(node)
-              setSecondary(null)
-            }}
-            onPaneClick={() => { setSelected(null); setSecondary(null) }}
-            proOptions={{ hideAttribution: false }}
-          >
-            <Background color={t['viz-canvas']} gap={24} />
-            <Controls showInteractive={false} />
-          </ReactFlow>
+          <ReactFlowProvider>
+            <GraphCanvas
+              nodes={displayNodes}
+              edges={displayEdges}
+              colorMode={scheme.colorScheme}
+              tokens={t}
+              layoutTick={layoutTick}
+              onNodeClick={handleNodeClick}
+              onPaneClick={() => { setSelected(null); setSecondary(null) }}
+            />
+          </ReactFlowProvider>
         </div>
 
         {isPairMode && pairData
